@@ -44,6 +44,10 @@ dependencies {
 	// mysql-connector
 	implementation 'mysql:mysql-connector-java'
 
+	// lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
 	testImplementation 'io.rest-assured:rest-assured'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
