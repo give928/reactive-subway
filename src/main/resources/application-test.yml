@@ -1,0 +1,20 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        default_batch_fetch_size: 1000
+        format_sql: true
+  flyway:
+    enabled: false
+  redis:
+    host: 127.0.0.1
+    port: 16379
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql: trace

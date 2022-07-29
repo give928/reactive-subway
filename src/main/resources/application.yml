@@ -1,0 +1,59 @@
+spring:
+  profiles:
+    active: local
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60s
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 100
+
+server:
+  compression:
+    enabled: true
+    mime-types: text/html,text/plain,text/css,text/javascript,application/javascript,application/json
+    min-response-size: 512
+
+cache:
+  subway:
+    lines:
+      name: lines
+      ttl: 600
+    line:
+      name: line
+      ttl: 300
+    line-responses:
+      name: line-responses
+      ttl: 600
+    line-response:
+      name: line-response
+      ttl: 300
+    stations:
+      name: stations
+      ttl: 300
+    find-path:
+      name: find-path
+      ttl: 3600
+
+handlebars:
+  suffix: .html
+  enabled: true
+
+security:
+  jwt:
+    token:
+      secret-key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIiLCJuYW1lIjoiSm9obiBEb2UiLCJpYXQiOjE1MTYyMzkwMjJ9.ih1aovtQShabQ7l0cINw4k1fagApg3qLWiB8Kt59Lno
+      expire-length: 3600000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    org:.springframework.cache: trace
