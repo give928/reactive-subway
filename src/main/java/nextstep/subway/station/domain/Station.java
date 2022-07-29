@@ -1,5 +1,8 @@
 package nextstep.subway.station.domain;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import nextstep.subway.common.BaseEntity;
 
 import javax.persistence.*;
@@ -7,6 +10,8 @@ import java.io.Serializable;
 import java.util.Objects;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 public class Station extends BaseEntity implements Serializable {
     private static final long serialVersionUID = -3592742922755525695L;
 
@@ -16,19 +21,8 @@ public class Station extends BaseEntity implements Serializable {
     @Column(unique = true)
     private String name;
 
-    public Station() {
-    }
-
     public Station(String name) {
         this.name = name;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
     }
 
     @Override

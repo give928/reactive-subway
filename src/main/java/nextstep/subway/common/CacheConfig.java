@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
@@ -24,14 +25,10 @@ import java.util.Map;
 
 @EnableCaching
 @Configuration
+@RequiredArgsConstructor
 public class CacheConfig extends CachingConfigurerSupport {
     private final RedisConnectionFactory connectionFactory;
     private final CacheProperties cacheProperties;
-
-    public CacheConfig(RedisConnectionFactory connectionFactory, CacheProperties cacheProperties) {
-        this.connectionFactory = connectionFactory;
-        this.cacheProperties = cacheProperties;
-    }
 
     @Bean
     public CacheManager redisCacheManager() {
@@ -70,8 +67,8 @@ public class CacheConfig extends CachingConfigurerSupport {
         Map<String, RedisCacheConfiguration> redisCacheConfigurations = new HashMap<>();
         cacheProperties.getSubway()
                 .forEach((name, cache) -> redisCacheConfigurations.put(cache.getName(),
-                                                                   redisCacheConfiguration.entryTtl(
-                                                     Duration.ofSeconds(cache.getTtl()))));
+                                                                       redisCacheConfiguration.entryTtl(
+                                                                               Duration.ofSeconds(cache.getTtl()))));
         return redisCacheConfigurations;
     }
 }

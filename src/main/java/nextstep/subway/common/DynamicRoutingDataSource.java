@@ -1,7 +1,6 @@
 package nextstep.subway.common;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -9,9 +8,8 @@ import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class DynamicRoutingDataSource extends AbstractRoutingDataSource {
-    private static final Logger log = LoggerFactory.getLogger(DynamicRoutingDataSource.class);
-
     private static final String MASTER = "master";
     private static final String SLAVE = "slave";
 
@@ -19,7 +17,6 @@ public class DynamicRoutingDataSource extends AbstractRoutingDataSource {
         Map<Object, Object> datasourceMap = new ConcurrentHashMap<>();
         datasourceMap.put(MASTER, masterDataSource);
         datasourceMap.put(SLAVE, slaveDataSource);
-
         setTargetDataSources(datasourceMap);
     }
 

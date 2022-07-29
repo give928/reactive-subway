@@ -1,11 +1,12 @@
 package nextstep.subway.common;
 
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.RequiredArgsConstructor;
+import org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy;
-import org.springframework.boot.orm.jpa.hibernate.SpringPhysicalNamingStrategy;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.datasource.LazyConnectionDataSourceProxy;
@@ -21,15 +22,12 @@ import java.util.Map;
 
 @Profile({"local", "prod"})
 @Configuration
+@RequiredArgsConstructor
 public class DataSourceConfig {
     private static final String MASTER_DATASOURCE = "masterDataSource";
     private static final String SLAVE_DATASOURCE = "slaveDataSource";
 
     private final Environment env;
-
-    public DataSourceConfig(Environment env) {
-        this.env = env;
-    }
 
     @Bean(MASTER_DATASOURCE)
     @ConfigurationProperties(prefix = "spring.datasource.hikari.master")
@@ -66,7 +64,7 @@ public class DataSourceConfig {
     @Bean
     public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource) {
         Map<String, Object> properties = new HashMap<>();
-        properties.put("hibernate.physical_naming_strategy", SpringPhysicalNamingStrategy.class.getName());
+        properties.put("hibernate.physical_naming_strategy", CamelCaseToUnderscoresNamingStrategy.class.getName());
         properties.put("hibernate.implicit_naming_strategy", SpringImplicitNamingStrategy.class.getName());
         properties.put("hibernate.hbm2ddl.auto", env.getProperty("spring.jpa.hibernate.ddl-auto"));
 

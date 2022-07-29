@@ -1,5 +1,6 @@
 package nextstep.subway.member.application;
 
+import lombok.RequiredArgsConstructor;
 import nextstep.subway.common.annotation.LoggingMethod;
 import nextstep.subway.member.domain.Member;
 import nextstep.subway.member.domain.MemberRepository;
@@ -10,12 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository memberRepository;
-
-    public MemberService(MemberRepository memberRepository) {
-        this.memberRepository = memberRepository;
-    }
 
     @LoggingMethod
     @Transactional

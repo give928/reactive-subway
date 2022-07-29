@@ -1,6 +1,7 @@
 package nextstep.subway.line.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.*;
 import nextstep.subway.common.BaseEntity;
 import nextstep.subway.station.domain.Station;
 
@@ -9,6 +10,10 @@ import java.io.Serializable;
 import java.util.*;
 
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Getter
 public class Line extends BaseEntity implements Serializable {
     private static final long serialVersionUID = -1249015528403540198L;
 
@@ -23,9 +28,6 @@ public class Line extends BaseEntity implements Serializable {
     @OneToMany(mappedBy = "line", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     private final List<Section> sections = new ArrayList<>();
 
-    public Line() {
-    }
-
     public Line(String name, String color) {
         this.name = name;
         this.color = color;
@@ -34,7 +36,12 @@ public class Line extends BaseEntity implements Serializable {
     public Line(String name, String color, Station upStation, Station downStation, int distance) {
         this.name = name;
         this.color = color;
-        sections.add(new Section(this, upStation, downStation, distance));
+        sections.add(Section.builder()
+                             .line(this)
+                             .upStation(upStation)
+                             .downStation(downStation)
+                             .distance(distance)
+                             .build());
     }
 
     public void update(Line line) {
@@ -55,7 +62,12 @@ public class Line extends BaseEntity implements Serializable {
         if (isDownStationExisted) {
             updateDownStation(upStation, downStation, distance);
         }
-        sections.add(new Section(this, upStation, downStation, distance));
+        sections.add(Section.builder()
+                             .line(this)
+                             .upStation(upStation)
+                             .downStation(downStation)
+                             .distance(distance)
+                             .build());
     }
 
     public void removeStation(Long stationId) {
@@ -63,7 +75,7 @@ public class Line extends BaseEntity implements Serializable {
             throw new IllegalArgumentException("라인에서 역을 제거할 수 없습니다.");
         }
 
-        Optional<Section> upLineStation = findUpstation(stationId);
+        Optional<Section> upLineStation = findUpStation(stationId);
         Optional<Section> downLineStation = findDownStation(stationId);
 
         if (upLineStation.isPresent() && downLineStation.isPresent()) {
@@ -80,22 +92,6 @@ public class Line extends BaseEntity implements Serializable {
         }
 
         return orderBySection();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getColor() {
-        return color;
-    }
-
-    public List<Section> getSections() {
-        return sections;
     }
 
     private List<Station> orderBySection() {
@@ -122,28 +118,28 @@ public class Line extends BaseEntity implements Serializable {
 
     private boolean isPresentPreSection(Station station) {
         return sections.stream()
-            .filter(Section::existDownStation)
-            .anyMatch(it -> it.equalDownStation(station));
+                .filter(Section::existDownStation)
+                .anyMatch(it -> it.equalDownStation(station));
     }
 
     private boolean isPresentNextSection(Station station) {
         return sections.stream()
-            .filter(Section::existUpStation)
-            .anyMatch(it -> it.equalUpStation(station));
+                .filter(Section::existUpStation)
+                .anyMatch(it -> it.equalUpStation(station));
     }
 
     private Section findPreSection(Station station) {
         return sections.stream()
-            .filter(it -> it.equalDownStation(station))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("이전 구간이 없습니다."));
+                .filter(it -> it.equalDownStation(station))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("이전 구간이 없습니다."));
     }
 
     private Section findNextSection(Station down) {
         return sections.stream()
-            .filter(it -> it.equalUpStation(down))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("다음 구간이 없습니다."));
+                .filter(it -> it.equalUpStation(down))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("다음 구간이 없습니다."));
     }
 
     private void valid(boolean isUpStationExisted, boolean isDownStationExisted) {
@@ -158,16 +154,16 @@ public class Line extends BaseEntity implements Serializable {
 
     private void updateDownStation(Station upStation, Station downStation, int distance) {
         sections.stream()
-            .filter(it -> it.getDownStation() == downStation)
-            .findFirst()
-            .ifPresent(it -> it.updateDownStation(upStation, distance));
+                .filter(it -> it.getDownStation() == downStation)
+                .findFirst()
+                .ifPresent(it -> it.updateDownStation(upStation, distance));
     }
 
     private void updateUpStation(Station upStation, Station downStation, int distance) {
         sections.stream()
-            .filter(it -> it.getUpStation() == upStation)
-            .findFirst()
-            .ifPresent(it -> it.updateUpStation(downStation, distance));
+                .filter(it -> it.getUpStation() == upStation)
+                .findFirst()
+                .ifPresent(it -> it.updateUpStation(downStation, distance));
     }
 
     private boolean isExisted(Station upStation) {
@@ -178,18 +174,23 @@ public class Line extends BaseEntity implements Serializable {
         Station newUpStation = downLineStation.getUpStation();
         Station newDownStation = upLineStation.getDownStation();
         int newDistance = upLineStation.getDistance() + downLineStation.getDistance();
-        sections.add(new Section(this, newUpStation, newDownStation, newDistance));
+        sections.add(Section.builder()
+                             .line(this)
+                             .upStation(newUpStation)
+                             .downStation(newDownStation)
+                             .distance(newDistance)
+                             .build());
     }
 
     private Optional<Section> findDownStation(Long stationId) {
         return sections.stream()
-            .filter(it -> it.equalDownStation(stationId))
-            .findFirst();
+                .filter(it -> it.equalDownStation(stationId))
+                .findFirst();
     }
 
-    private Optional<Section> findUpstation(Long stationId) {
+    private Optional<Section> findUpStation(Long stationId) {
         return sections.stream()
-            .filter(it -> it.equalUpStation(stationId))
-            .findFirst();
+                .filter(it -> it.equalUpStation(stationId))
+                .findFirst();
     }
 }

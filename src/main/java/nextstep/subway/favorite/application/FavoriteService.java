@@ -1,5 +1,6 @@
 package nextstep.subway.favorite.application;
 
+import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.domain.LoginMember;
 import nextstep.subway.favorite.domain.Favorite;
 import nextstep.subway.favorite.domain.FavoriteRepository;
@@ -21,18 +22,18 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final StationRepository stationRepository;
 
-    public FavoriteService(FavoriteRepository favoriteRepository, StationRepository stationRepository) {
-        this.favoriteRepository = favoriteRepository;
-        this.stationRepository = stationRepository;
-    }
-
     @Transactional
     public void createFavorite(LoginMember loginMember, FavoriteRequest request) {
-        Favorite favorite = new Favorite(loginMember.getId(), request.getSource(), request.getTarget());
+        Favorite favorite = Favorite.builder()
+                .memberId(loginMember.getId())
+                .sourceStationId(request.getSource())
+                .targetStationId(request.getTarget())
+                .build();
         favoriteRepository.save(favorite);
     }
 
@@ -41,11 +42,12 @@ public class FavoriteService {
         Map<Long, Station> stations = extractStations(favorites);
 
         return favorites.stream()
-            .map(it -> FavoriteResponse.of(
-                it,
-                StationResponse.of(stations.get(it.getSourceStationId())),
-                StationResponse.of(stations.get(it.getTargetStationId()))))
-            .collect(Collectors.toList());
+                .map(favorite -> FavoriteResponse.builder()
+                        .id(favorite.getId())
+                        .source(StationResponse.of(stations.get(favorite.getSourceStationId())))
+                        .target(StationResponse.of(stations.get(favorite.getTargetStationId())))
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -60,7 +62,7 @@ public class FavoriteService {
     private Map<Long, Station> extractStations(List<Favorite> favorites) {
         Set<Long> stationIds = extractStationIds(favorites);
         return stationRepository.findAllById(stationIds).stream()
-            .collect(Collectors.toMap(Station::getId, Function.identity()));
+                .collect(Collectors.toMap(Station::getId, Function.identity()));
     }
 
     private Set<Long> extractStationIds(List<Favorite> favorites) {

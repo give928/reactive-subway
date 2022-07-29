@@ -1,5 +1,6 @@
 package nextstep.subway.auth.ui;
 
+import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.application.AuthService;
 import nextstep.subway.auth.domain.AuthenticationPrincipal;
 import nextstep.subway.auth.infrastructure.AuthorizationExtractor;
@@ -12,12 +13,9 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
+@RequiredArgsConstructor
 public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
     private final AuthService authService;
-
-    public AuthenticationPrincipalArgumentResolver(AuthService authService) {
-        this.authService = authService;
-    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {

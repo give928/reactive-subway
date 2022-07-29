@@ -1,12 +1,17 @@
 package nextstep.subway.line.domain;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import lombok.*;
 import nextstep.subway.station.domain.Station;
 
 import javax.persistence.*;
 import java.io.Serializable;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+@Getter
 public class Section implements Serializable {
     private static final long serialVersionUID = -6362608601955321872L;
 
@@ -29,28 +34,6 @@ public class Section implements Serializable {
 
     private int distance;
 
-    public Section() {
-    }
-
-    public Section(Line line, Station upStation, Station downStation, int distance) {
-        this.line = line;
-        this.upStation = upStation;
-        this.downStation = downStation;
-        this.distance = distance;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Line getLine() {
-        return line;
-    }
-
-    public Station getUpStation() {
-        return upStation;
-    }
-
     public Boolean equalUpStation(Long stationId) {
         return this.upStation.getId().equals(stationId);
     }
@@ -65,14 +48,6 @@ public class Section implements Serializable {
 
     public Boolean equalDownStation(Station station) {
         return this.downStation.equals(station);
-    }
-
-    public Station getDownStation() {
-        return downStation;
-    }
-
-    public int getDistance() {
-        return distance;
     }
 
     public void updateUpStation(Station station, int newDistance) {

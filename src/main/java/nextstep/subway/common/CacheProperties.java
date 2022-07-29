@@ -1,5 +1,7 @@
 package nextstep.subway.common;
 
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.stereotype.Component;
@@ -17,21 +19,10 @@ public class CacheProperties {
         return subway;
     }
 
+    @RequiredArgsConstructor
+    @Getter
     public static class Cache {
         private final String name;
         private final Long ttl;
-
-        public Cache(String name, Long ttl) {
-            this.name = name;
-            this.ttl = ttl;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public Long getTtl() {
-            return ttl;
-        }
     }
 }

@@ -1,34 +1,22 @@
 package nextstep.subway.member.dto;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import nextstep.subway.member.domain.Member;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@Getter
 public class MemberRequest {
     private String email;
     private String password;
     private Integer age;
 
-    public MemberRequest() {
-    }
-
-    public MemberRequest(String email, String password, Integer age) {
-        this.email = email;
-        this.password = password;
-        this.age = age;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
     public Member toMember() {
-        return new Member(email, password, age);
+        return Member.builder()
+                .email(email)
+                .password(password)
+                .age(age)
+                .build();
     }
 }

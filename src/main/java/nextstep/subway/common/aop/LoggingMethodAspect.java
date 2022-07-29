@@ -2,6 +2,7 @@ package nextstep.subway.common.aop;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import net.logstash.logback.marker.LogstashMarker;
 import net.logstash.logback.marker.Markers;
 import nextstep.subway.common.annotation.LoggingMethod;
@@ -19,8 +20,9 @@ import java.util.stream.IntStream;
 
 import static net.logstash.logback.marker.Markers.*;
 
-@Component
 @Aspect
+@Component
+@RequiredArgsConstructor
 public class LoggingMethodAspect {
     private static final String TRACE_ID = "traceId";
     private static final String TRACE_SIGNATURE = "signature";
@@ -29,10 +31,6 @@ public class LoggingMethodAspect {
     private static final Logger json = LoggerFactory.getLogger("json");
 
     private final ObjectMapper objectMapper;
-
-    public LoggingMethodAspect(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
 
     @Before("@annotation(nextstep.subway.common.annotation.LoggingMethod) && @annotation(loggingMethod)")
     public void doBefore(JoinPoint joinPoint, LoggingMethod loggingMethod) {
