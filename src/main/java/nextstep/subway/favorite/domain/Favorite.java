@@ -1,7 +1,7 @@
 package nextstep.subway.favorite.domain;
 
 import lombok.*;
-import nextstep.subway.common.BaseEntity;
+import nextstep.subway.common.entity.BaseEntity;
 
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.config.auth;
 
 import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.application.AuthService;

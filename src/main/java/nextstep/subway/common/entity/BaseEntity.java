@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.entity;
 
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;

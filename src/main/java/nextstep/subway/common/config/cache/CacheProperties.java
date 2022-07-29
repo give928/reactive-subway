@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.config.cache;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

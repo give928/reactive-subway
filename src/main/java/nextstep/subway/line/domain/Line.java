@@ -2,7 +2,7 @@ package nextstep.subway.line.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.*;
-import nextstep.subway.common.BaseEntity;
+import nextstep.subway.common.entity.BaseEntity;
 import nextstep.subway.station.domain.Station;
 
 import javax.persistence.*;

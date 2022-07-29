@@ -3,7 +3,7 @@ package nextstep.subway.station.domain;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import nextstep.subway.common.BaseEntity;
+import nextstep.subway.common.entity.BaseEntity;
 
 import javax.persistence.*;
 import java.io.Serializable;

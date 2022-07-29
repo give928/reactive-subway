@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.config.datasource;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;

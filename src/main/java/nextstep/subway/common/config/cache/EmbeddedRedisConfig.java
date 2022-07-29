@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.config.cache;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

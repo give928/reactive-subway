@@ -1,4 +1,4 @@
-package nextstep.subway.common;
+package nextstep.subway.common.config.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
