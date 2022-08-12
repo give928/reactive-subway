@@ -1,38 +1,68 @@
+#server:
+#  port: 443
+#  ssl:
+#    enabled: true
+#    key-store: classpath:cert/give928-keystore.p12
+#    key-store-type: PKCS12
+#    key-store-password: 123456
+#    enabled-protocols: TLSv1.2,TLSv1.3
+#  http2:
+#    enabled: true
+
 spring:
   config:
     activate:
       on-profile: local
-  datasource:
-    hikari:
-      master:
-        username: subway
-        password: subway_password
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        jdbc-url: jdbc:mysql://localhost:3306/subway
-      slave:
-        username: subway
-        password: subway_password
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        jdbc-url: jdbc:mysql://localhost:3307/subway
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        default_batch_fetch_size: 1000
-        format_sql: true
-  h2:
-    console:
-      enabled: true
+  r2dbc:
+    master:
+#      url: r2dbc:mysql://subway:subway_password@localhost:3306/subway
+      driver: pool
+      protocol: mysql
+      host: localhost
+      port: 3306
+      username: subway
+      password: subway_password
+      database: subway
+      connection-timeout: 10s
+      ssl: false
+      poolName: master-pool
+      initial-size: 10
+      max-size: 30
+      max-idle-time: 15s
+      max-life-time: 30s
+      max-create-connection-time: 3s
+      max-acquire-time: 4s
+      acquire-retry: 1
+      validation-query: select 1
+      register-jmx: false
+    slave:
+#      url: r2dbc:mysql://subway:subway_password@localhost:3307/subway
+      driver: pool
+      protocol: mysql
+      host: localhost
+      port: 3307
+      username: subway
+      password: subway_password
+      database: subway
+      connection-timeout: 10s
+      ssl: false
+      poolName: slave-pool
+      initial-size: 10
+      max-size: 30
+      max-idle-time: 15s
+      max-life-time: 30s
+      max-create-connection-time: 3s
+      max-acquire-time: 4s
+      acquire-retry: 1
+      validation-query: select 1
+      register-jmx: false
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 1
     locations: classpath:/db/migration
-  redis:
-    host: 127.0.0.1
-    port: 6379
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
+    org.springframework.r2dbc.core.DefaultDatabaseClient: debug
+    nextstep.subway: debug

@@ -9,22 +9,22 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(basePackages = {"nextstep.subway"})
 @Slf4j
-public class GlobalExceptionHandler {
+public class GlobalRestControllerExceptionHandler {
     @ExceptionHandler(AuthorizationException.class)
     public ResponseEntity<Void> handleAuthorizationException(AuthorizationException e) {
-        log.error("handleAuthorizationException", e);
+        log.error("handle AuthorizationException", e);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Void> handleRuntimeException(RuntimeException e) {
-        log.error("handleRuntimeException", e);
+        log.error("handle RuntimeException", e);
         return ResponseEntity.badRequest().build();
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Void> handleException(Exception e) {
-        log.error("handleException", e);
+        log.error("handle Exception", e);
         return ResponseEntity.internalServerError().build();
     }
 }

@@ -12,4 +12,4 @@ pluginManagement {
 		}
 	}
 }
-rootProject.name = 'subway-webflux'
+rootProject.name = 'reactive-subway'

@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,8 +16,8 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login/token")
-    public ResponseEntity<TokenResponse> login(@RequestBody TokenRequest request) {
-        TokenResponse token = authService.login(request);
-        return ResponseEntity.ok().body(token);
+    public Mono<ResponseEntity<TokenResponse>> login(@RequestBody TokenRequest request) {
+        return authService.login(request)
+                .map(ResponseEntity::ok);
     }
 }

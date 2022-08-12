@@ -2,19 +2,14 @@ spring:
   config:
     activate:
       on-profile: test
-  jpa:
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
-        default_batch_fetch_size: 1000
-        format_sql: true
+  r2dbc:
+    url: r2dbc:h2:mem:///test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    username: sa
+    password:
   flyway:
     enabled: false
-  redis:
-    host: 127.0.0.1
-    port: 16379
 
 logging:
   level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql: trace
+    io.r2dbc.h2.client.SessionClient: trace
+    nextstep.subway: debug

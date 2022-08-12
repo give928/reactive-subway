@@ -1,9 +1,8 @@
 package nextstep.subway.favorite.domain;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import reactor.core.publisher.Flux;
 
-import java.util.List;
-
-public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
-    List<Favorite> findByMemberId(Long memberId);
+public interface FavoriteRepository extends R2dbcRepository<Favorite, Long> {
+    Flux<Favorite> findByMemberId(Long memberId);
 }

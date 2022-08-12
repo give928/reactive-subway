@@ -1,17 +1,18 @@
 package study.unit;
 
-import com.google.common.collect.Lists;
 import nextstep.subway.line.application.LineService;
 import nextstep.subway.line.domain.Line;
 import nextstep.subway.line.domain.LineRepository;
+import nextstep.subway.line.domain.Section;
+import nextstep.subway.line.domain.SectionRepository;
 import nextstep.subway.line.dto.LinesResponse;
 import nextstep.subway.station.application.StationService;
+import nextstep.subway.station.domain.Station;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
+import reactor.test.StepVerifier;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -21,15 +22,20 @@ class MockitoTest {
     void findAllLines() {
         // given
         LineRepository lineRepository = mock(LineRepository.class);
+        SectionRepository sectionRepository = mock(SectionRepository.class);
         StationService stationService = mock(StationService.class);
 
-        when(lineRepository.findAll()).thenReturn(Lists.newArrayList(new Line()));
-        LineService lineService = new LineService(lineRepository, stationService);
+        when(lineRepository.findAll()).thenReturn(Flux.just(new Line()));
+        when(sectionRepository.findAll()).thenReturn(Flux.just(new Section()));
+        when(stationService.findAll()).thenReturn(Flux.just(new Station()));
+        LineService lineService = new LineService(lineRepository, sectionRepository, stationService);
 
         // when
-        List<LinesResponse> responses = lineService.findLineResponses();
+        Flux<LinesResponse> responses = lineService.findLineResponses();
 
         // then
-        assertThat(responses).hasSize(1);
+        StepVerifier.create(responses)
+                .expectNextCount(1)
+                .verifyComplete();
     }
 }

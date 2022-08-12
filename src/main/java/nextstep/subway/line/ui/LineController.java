@@ -8,6 +8,7 @@ import nextstep.subway.line.dto.LinesResponse;
 import nextstep.subway.line.dto.SectionRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.util.List;
@@ -19,42 +20,46 @@ public class LineController {
     private final LineService lineService;
 
     @PostMapping
-    public ResponseEntity<LineResponse> createLine(@RequestBody LineRequest lineRequest) {
-        LineResponse line = lineService.saveLine(lineRequest);
-        return ResponseEntity.created(URI.create("/lines/" + line.getId())).body(line);
+    public Mono<ResponseEntity<LineResponse>> createLine(@RequestBody LineRequest lineRequest) {
+        return lineService.saveLine(lineRequest)
+                .map(lineResponse -> ResponseEntity.created(URI.create("/lines/" + lineResponse.getId()))
+                                .body(lineResponse));
     }
 
     @GetMapping
-    public ResponseEntity<List<LinesResponse>> findAllLines() {
-        return ResponseEntity.ok(lineService.findLineResponses());
+    public Mono<ResponseEntity<List<LinesResponse>>> findAllLines() {
+        return lineService.findLineResponses()
+                .collectList()
+                .map(ResponseEntity::ok);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LineResponse> findLineById(@PathVariable Long id) {
-        return ResponseEntity.ok(lineService.findLineResponseById(id));
+    public Mono<ResponseEntity<LineResponse>> findLineById(@PathVariable Long id) {
+        return lineService.findLineResponseById(id)
+                .map(ResponseEntity::ok);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateLine(@PathVariable Long id, @RequestBody LineRequest lineUpdateRequest) {
-        lineService.updateLine(id, lineUpdateRequest);
-        return ResponseEntity.ok().build();
+    public Mono<ResponseEntity<Void>> updateLine(@PathVariable Long id, @RequestBody LineRequest lineUpdateRequest) {
+        return lineService.updateLine(id, lineUpdateRequest)
+                .map(line -> ResponseEntity.ok().build());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLine(@PathVariable Long id) {
-        lineService.deleteLineById(id);
-        return ResponseEntity.noContent().build();
+    public Mono<ResponseEntity<Void>> deleteLine(@PathVariable Long id) {
+        return lineService.deleteLineById(id)
+                .then(Mono.just(ResponseEntity.noContent().build()));
     }
 
     @PostMapping("/{lineId}/sections")
-    public ResponseEntity<Void> addLineStation(@PathVariable Long lineId, @RequestBody SectionRequest sectionRequest) {
-        lineService.addLineStation(lineId, sectionRequest);
-        return ResponseEntity.ok().build();
+    public Mono<ResponseEntity<Void>> addLineStation(@PathVariable Long lineId, @RequestBody SectionRequest sectionRequest) {
+        return lineService.addLineStation(lineId, sectionRequest)
+                .map(v -> ResponseEntity.ok().build());
     }
 
     @DeleteMapping("/{lineId}/sections")
-    public ResponseEntity<Void> removeLineStation(@PathVariable Long lineId, @RequestParam Long stationId) {
-        lineService.removeLineStation(lineId, stationId);
-        return ResponseEntity.ok().build();
+    public Mono<ResponseEntity<Void>> removeLineStation(@PathVariable Long lineId, @RequestParam Long stationId) {
+        return lineService.removeLineStation(lineId, stationId)
+                .then(Mono.just(ResponseEntity.ok().build()));
     }
 }

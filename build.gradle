@@ -17,42 +17,48 @@ repositories {
 
 dependencies {
 	// spring
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-	// handlebars
-	implementation 'pl.allegro.tech.boot:handlebars-spring-boot-starter:0.3.4'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
 	// log
-	implementation 'net.rakugakibox.spring.boot:logback-access-spring-boot-starter:2.7.1'
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.1.1'
 
 	// jgraph
 	implementation 'org.jgrapht:jgrapht-core:1.0.1'
 
 	// jwt
-	implementation 'io.jsonwebtoken:jjwt:0.9.1'
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
 	// flyway
 	implementation 'org.flywaydb:flyway-core'
 	implementation "org.flywaydb:flyway-mysql"
 
-	// redis
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	implementation 'it.ozimov:embedded-redis:0.7.2'
-
-	// mysql-connector
-	implementation 'mysql:mysql-connector-java'
+	// r2dbc mysql
+	implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
 
 	// lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
-	testImplementation 'io.rest-assured:rest-assured'
+	// netty dns macos
+	implementation 'io.netty:netty-resolver-dns-native-macos:4.1.79.Final:osx-aarch_64'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-	runtimeOnly 'com.h2database:h2'
+	// reactor
+	implementation 'io.projectreactor.tools:blockhound:1.0.6.RELEASE'
+	testImplementation 'io.projectreactor:reactor-test'
+	testImplementation 'io.projectreactor.tools:blockhound-junit-platform:1.0.6.RELEASE'
+
+	// rest-assured
+	testImplementation 'io.rest-assured:rest-assured'
+
+	// r2dbc h2
+	testRuntimeOnly 'io.r2dbc:r2dbc-h2'
 }
 
 test {
@@ -71,7 +77,7 @@ jib {
 		}
 	}
 	to {
-		image = 'give928/infra-subway-performance'
+		image = 'give928/reactive-subway'
 		tags = ['0.0.1']
 	}
 	container {

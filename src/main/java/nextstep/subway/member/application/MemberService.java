@@ -1,13 +1,13 @@
 package nextstep.subway.member.application;
 
 import lombok.RequiredArgsConstructor;
-import nextstep.subway.common.annotation.LoggingMethod;
-import nextstep.subway.member.domain.Member;
+import nextstep.subway.common.annotation.Loggable;
 import nextstep.subway.member.domain.MemberRepository;
 import nextstep.subway.member.dto.MemberRequest;
 import nextstep.subway.member.dto.MemberResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 @Service
 @Transactional(readOnly = true)
@@ -15,28 +15,36 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberService {
     private final MemberRepository memberRepository;
 
-    @LoggingMethod
+    @Loggable
     @Transactional
-    public MemberResponse createMember(MemberRequest request) {
-        Member member = memberRepository.save(request.toMember());
-        return MemberResponse.of(member);
+    public Mono<MemberResponse> createMember(MemberRequest request) {
+        return memberRepository.save(request.toMember())
+                .map(MemberResponse::of);
     }
 
-    public MemberResponse findMember(Long id) {
-        Member member = memberRepository.findById(id).orElseThrow(RuntimeException::new);
-        return MemberResponse.of(member);
+    // @formatter:off
+    public Mono<MemberResponse> findMember(Long id) {
+        return memberRepository.findById(id)
+                .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
+                .map(MemberResponse::of);
     }
+    // @formatter:on
 
-    @LoggingMethod
+    // @formatter:off
+    @Loggable
     @Transactional
-    public void updateMember(Long id, MemberRequest param) {
-        Member member = memberRepository.findById(id).orElseThrow(RuntimeException::new);
-        member.update(param.toMember());
+    public Mono<Void> updateMember(Long id, MemberRequest param) {
+        return memberRepository.findById(id)
+                .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
+                .map(member -> member.update(param.toMember()))
+                .flatMap(memberRepository::save)
+                .then();
     }
+    // @formatter:on
 
-    @LoggingMethod
+    @Loggable
     @Transactional
-    public void deleteMember(Long id) {
-        memberRepository.deleteById(id);
+    public Mono<Void> deleteMember(Long id) {
+        return memberRepository.deleteById(id);
     }
 }

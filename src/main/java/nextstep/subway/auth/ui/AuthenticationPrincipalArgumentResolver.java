@@ -5,12 +5,11 @@ import nextstep.subway.auth.application.AuthService;
 import nextstep.subway.auth.domain.AuthenticationPrincipal;
 import nextstep.subway.auth.infrastructure.AuthorizationExtractor;
 import org.springframework.core.MethodParameter;
-import org.springframework.web.bind.support.WebDataBinderFactory;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.web.reactive.BindingContext;
+import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 
 @RequiredArgsConstructor
@@ -23,9 +22,9 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-        String credentials = AuthorizationExtractor.extract(
-                Objects.requireNonNull(webRequest.getNativeRequest(HttpServletRequest.class)));
-        return authService.findMemberByToken(credentials);
+    public Mono<Object> resolveArgument(MethodParameter parameter, BindingContext bindingContext,
+                                        ServerWebExchange exchange) {
+        return Mono.just(AuthorizationExtractor.extract(Objects.requireNonNull(exchange.getRequest())))
+                .flatMap(authService::findMemberByToken);
     }
 }

@@ -1,19 +1,15 @@
 package nextstep.subway.map.application;
 
 import lombok.RequiredArgsConstructor;
-import nextstep.subway.common.annotation.LoggingMethod;
+import nextstep.subway.common.annotation.Loggable;
 import nextstep.subway.line.application.LineService;
-import nextstep.subway.line.domain.Line;
-import nextstep.subway.map.domain.SubwayPath;
 import nextstep.subway.map.dto.PathResponse;
 import nextstep.subway.map.dto.PathResponseAssembler;
 import nextstep.subway.station.application.StationService;
-import nextstep.subway.station.domain.Station;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
+import reactor.core.publisher.Mono;
+import reactor.util.function.Tuples;
 
 @Service
 @Transactional(readOnly = true)
@@ -23,14 +19,16 @@ public class MapService {
     private final StationService stationService;
     private final PathService pathService;
 
-    @LoggingMethod(json = true)
-    @Cacheable(value = "find-path", key = "{#source, #target}")
-    public PathResponse findPath(Long source, Long target) {
-        List<Line> lines = lineService.findLines();
-        Station sourceStation = stationService.findById(source);
-        Station targetStation = stationService.findById(target);
-        SubwayPath subwayPath = pathService.findPath(lines, sourceStation, targetStation);
-
-        return PathResponseAssembler.assemble(subwayPath);
+    // @formatter:off
+    @Loggable(json = true)
+    public Mono<PathResponse> findPath(Long source, Long target) {
+        return lineService.findLines()
+                .collectList()
+                .flatMap(lines -> stationService.findById(source)
+                        .flatMap(sourceStation -> Mono.just(Tuples.of(lines, sourceStation))))
+                .flatMap(tuple -> stationService.findById(target)
+                        .flatMap(targetStation -> pathService.findPath(tuple.getT1(), tuple.getT2(), targetStation)))
+                .map(PathResponseAssembler::assemble);
     }
+    // @formatter:on
 }

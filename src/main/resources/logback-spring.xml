@@ -26,16 +26,16 @@
 
     <!-- 로컬, 테스트 -->
     <springProfile name="!prod">
-        <logger name="console" level="TRACE" >
+        <logger name="console" level="DEBUG" >
             <appender-ref ref="console" />
         </logger>
-        <logger name="out" level="INFO" >
+        <logger name="out" level="DEBUG" >
             <appender-ref ref="out" />
         </logger>
         <logger name="error" level="ERROR" >
             <appender-ref ref="error" />
         </logger>
-        <logger name="json" level="INFO" >
+        <logger name="json" level="DEBUG" >
             <appender-ref ref="json" />
         </logger>
     </springProfile>

@@ -9,13 +9,14 @@ import org.jgrapht.GraphPath;
 import org.jgrapht.alg.shortestpath.DijkstraShortestPath;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class PathService {
-    public SubwayPath findPath(List<Line> lines, Station source, Station target) {
+    public Mono<SubwayPath> findPath(List<Line> lines, Station source, Station target) {
         SubwayGraph graph = new SubwayGraph(SectionEdge.class);
         graph.addVertexWith(lines);
         graph.addEdge(lines);
@@ -24,7 +25,7 @@ public class PathService {
         DijkstraShortestPath<Station, SectionEdge> dijkstraShortestPath = new DijkstraShortestPath<>(graph);
         GraphPath<Station, SectionEdge> path = dijkstraShortestPath.getPath(source, target);
 
-        return convertSubwayPath(path);
+        return Mono.just(convertSubwayPath(path));
     }
 
     private SubwayPath convertSubwayPath(GraphPath<Station, SectionEdge> graphPath) {

@@ -10,8 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -37,15 +37,17 @@ class AuthServiceTest {
 
     @Test
     void login() {
-        when(memberRepository.findByEmail(anyString())).thenReturn(Optional.of(Member.builder()
-                                                                                       .email(EMAIL)
-                                                                                       .password(PASSWORD)
-                                                                                       .age(AGE)
-                                                                                       .build()));
+        when(memberRepository.findByEmail(anyString())).thenReturn(Mono.just(Member.builder()
+                                                                                     .email(EMAIL)
+                                                                                     .password(PASSWORD)
+                                                                                     .age(AGE)
+                                                                                     .build()));
         when(jwtTokenProvider.createToken(anyString())).thenReturn("TOKEN");
 
-        TokenResponse token = authService.login(new TokenRequest(EMAIL, PASSWORD));
+        Mono<TokenResponse> token = authService.login(new TokenRequest(EMAIL, PASSWORD));
 
-        assertThat(token.getAccessToken()).isNotBlank();
+        StepVerifier.create(token)
+                .assertNext(tokenResponse -> assertThat(tokenResponse.getAccessToken()).isNotBlank())
+                .verifyComplete();
     }
 }

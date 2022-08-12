@@ -23,10 +23,10 @@ class StaticResourcesTest extends AcceptanceTest {
 
     /**
      * When javascript 정적 자원을 최초로 요청하면
-     * Then 응답 상태 코드가 200 OK, 헤더에 ETag 가 존재, no-cache, private, 바디가 전송된다.
+     * Then 응답 상태 코드가 200 OK, 헤더에 ETag 가 존재, 압축 설정, no-cache, private, 바디가 전송된다.
      * Given css 정적 자원을 초기화하고
      * When 최초로 요청하면
-     * Then 응답 상태 코드가 200 OK, 헤더에 ETag 가 존재, max-age 는 1년, 바디가 전송된다.
+     * Then 응답 상태 코드가 200 OK, 헤더에 ETag 가 존재, 압축 설정, max-age 는 1년, 바디가 전송된다.
      * When 헤더에 ETag 를 담아서 변경되지 않은 정적 자원을 요청하면
      * Then 응답 상태 코드가 304 Not Modified, 바디가 비어있다.
      * When 정적 자원을 변경하고 헤더에 ETag 를 담아서 요청하면
@@ -41,6 +41,8 @@ class StaticResourcesTest extends AcceptanceTest {
 
         // then
         assertThat(javascriptResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
+        assertThat(javascriptResponse.getHeader(HttpHeaders.CONTENT_ENCODING)).isEqualTo("gzip");
+        assertThat(javascriptResponse.getHeader(HttpHeaders.TRANSFER_ENCODING)).isEqualTo("chunked");
         assertThat(javascriptResponse.getHeader(HttpHeaders.ETAG)).isNotBlank();
         assertThat(javascriptResponse.getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-cache, private");
         assertThat(javascriptResponse.getBody().asString()).isNotBlank();

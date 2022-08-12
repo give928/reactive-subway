@@ -3,25 +3,17 @@ package nextstep.subway.common.config.auth;
 import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.application.AuthService;
 import nextstep.subway.auth.ui.AuthenticationPrincipalArgumentResolver;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-import java.util.List;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
+import org.springframework.web.reactive.result.method.annotation.ArgumentResolverConfigurer;
 
 @Configuration
 @RequiredArgsConstructor
-public class AuthenticationPrincipalConfig implements WebMvcConfigurer {
+public class AuthenticationPrincipalConfig implements WebFluxConfigurer {
     private final AuthService authService;
 
     @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-        argumentResolvers.add(createAuthenticationPrincipalArgumentResolver());
-    }
-
-    @Bean
-    public AuthenticationPrincipalArgumentResolver createAuthenticationPrincipalArgumentResolver() {
-        return new AuthenticationPrincipalArgumentResolver(authService);
+    public void configureArgumentResolvers(ArgumentResolverConfigurer configurer) {
+        configurer.addCustomResolver(new AuthenticationPrincipalArgumentResolver(authService));
     }
 }
