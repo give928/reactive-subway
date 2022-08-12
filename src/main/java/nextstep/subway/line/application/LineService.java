@@ -17,7 +17,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -114,19 +117,17 @@ public class LineService {
     // @formatter:on
 
     private Mono<Map<Long, Station>> extractStations(List<Section> sections) {
-        Set<Long> stationIds = extractStationIds(sections);
-        return stationService.findAllById(stationIds)
+        return stationService.findAllById(extractStationIds(sections))
                 .collectMap(Station::getId, Function.identity());
     }
 
+    // @formatter:off
     private Set<Long> extractStationIds(List<Section> sections) {
-        Set<Long> stationIds = new HashSet<>();
-        for (Section section : sections) {
-            stationIds.add(section.getUpStationId());
-            stationIds.add(section.getDownStationId());
-        }
-        return stationIds;
+        return sections.stream()
+                .flatMap(section -> Stream.of(section.getUpStationId(), section.getDownStationId()))
+                .collect(Collectors.toSet());
     }
+    // @formatter:on
 
     public Mono<LineResponse> findLineResponseById(Long id) {
         return findLineById(id).map(LineResponse::of);

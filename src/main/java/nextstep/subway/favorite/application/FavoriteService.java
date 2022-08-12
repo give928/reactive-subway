@@ -16,11 +16,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -52,18 +52,14 @@ public class FavoriteService {
     // @formatter:on
 
     private Mono<Map<Long, Station>> extractStations(List<Favorite> favorites) {
-        Set<Long> stationIds = extractStationIds(favorites);
-        return stationService.findAllById(stationIds)
+        return stationService.findAllById(extractStationIds(favorites))
                 .collectMap(Station::getId, Function.identity());
     }
 
     private Set<Long> extractStationIds(List<Favorite> favorites) {
-        Set<Long> stationIds = new HashSet<>();
-        for (Favorite favorite : favorites) {
-            stationIds.add(favorite.getSourceStationId());
-            stationIds.add(favorite.getTargetStationId());
-        }
-        return stationIds;
+        return favorites.stream()
+                .flatMap(favorite -> Stream.of(favorite.getSourceStationId(), favorite.getTargetStationId()))
+                .collect(Collectors.toSet());
     }
 
     // @formatter:off
