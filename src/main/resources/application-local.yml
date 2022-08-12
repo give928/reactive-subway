@@ -14,48 +14,25 @@ spring:
     activate:
       on-profile: local
   r2dbc:
-    master:
-#      url: r2dbc:mysql://subway:subway_password@localhost:3306/subway
-      driver: pool
-      protocol: mysql
-      host: localhost
-      port: 3306
-      username: subway
-      password: subway_password
-      database: subway
-      connection-timeout: 10s
-      ssl: false
-      poolName: master-pool
-      initial-size: 10
-      max-size: 30
-      max-idle-time: 15s
-      max-life-time: 30s
-      max-create-connection-time: 3s
-      max-acquire-time: 4s
-      acquire-retry: 1
-      validation-query: select 1
-      register-jmx: false
-    slave:
-#      url: r2dbc:mysql://subway:subway_password@localhost:3307/subway
-      driver: pool
-      protocol: mysql
-      host: localhost
-      port: 3307
-      username: subway
-      password: subway_password
-      database: subway
-      connection-timeout: 10s
-      ssl: false
-      poolName: slave-pool
-      initial-size: 10
-      max-size: 30
-      max-idle-time: 15s
-      max-life-time: 30s
-      max-create-connection-time: 3s
-      max-acquire-time: 4s
-      acquire-retry: 1
-      validation-query: select 1
-      register-jmx: false
+    driver: pool
+    protocol: mysql
+    host: localhost
+    port: 3306
+    username: subway
+    password: subway_password
+    database: subway
+    connection-timeout: 10s
+    ssl: false
+    poolName: master-pool
+    initial-size: 10
+    max-size: 30
+    max-idle-time: 15s
+    max-life-time: 30s
+    max-create-connection-time: 3s
+    max-acquire-time: 4s
+    acquire-retry: 1
+    validation-query: select 1
+    register-jmx: true
   flyway:
     enabled: true
     baseline-on-migrate: true

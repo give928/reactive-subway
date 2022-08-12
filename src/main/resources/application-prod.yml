@@ -3,46 +3,25 @@ spring:
     activate:
       on-profile: prod
   r2dbc:
-    master:
-      driver: pool
-      protocol: mysql
-      host: ${MYSQL_MASTER_HOST:172.17.0.1}
-      port: ${MYSQL_MASTER_PORT:3306}
-      username: ${MYSQL_MASTER_USERNAME:subway}
-      password: ${MYSQL_MASTER_PASSWORD:subway_password}
-      database: ${MYSQL_MASTER_DATABASE:subway}
-      connection-timeout: 10s
-      ssl: false
-      poolName: master-pool
-      initial-size: 10
-      max-size: 30
-      max-idle-time: 15s
-      max-life-time: 30s
-      max-create-connection-time: 3s
-      max-acquire-time: 4s
-      acquire-retry: 1
-      validation-query: select 1
-      register-jmx: true
-    slave:
-      driver: pool
-      protocol: mysql
-      host: ${MYSQL_SLAVE_HOST:172.17.0.1}
-      port: ${MYSQL_SLAVE_PORT:3307}
-      username: ${MYSQL_SLAVE_USERNAME:subway}
-      password: ${MYSQL_SLAVE_PASSWORD:subway_password}
-      database: ${MYSQL_SLAVE_DATABASE:subway}
-      connection-timeout: 10s
-      ssl: false
-      poolName: slave-pool
-      initial-size: 10
-      max-size: 30
-      max-idle-time: 15s
-      max-life-time: 30s
-      max-create-connection-time: 3s
-      max-acquire-time: 4s
-      acquire-retry: 1
-      validation-query: select 1
-      register-jmx: true
+    driver: pool
+    protocol: mysql
+    host: ${MYSQL_MASTER_HOST:172.17.0.1}
+    port: ${MYSQL_MASTER_PORT:3306}
+    username: ${MYSQL_MASTER_USERNAME:subway}
+    password: ${MYSQL_MASTER_PASSWORD:subway_password}
+    database: ${MYSQL_MASTER_DATABASE:subway}
+    connection-timeout: 10s
+    ssl: false
+    poolName: master-pool
+    initial-size: 10
+    max-size: 30
+    max-idle-time: 15s
+    max-life-time: 30s
+    max-create-connection-time: 3s
+    max-acquire-time: 4s
+    acquire-retry: 1
+    validation-query: select 1
+    register-jmx: true
   flyway:
     enabled: true
     baseline-on-migrate: true
