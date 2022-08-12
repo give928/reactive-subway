@@ -268,7 +268,7 @@ public class WebFluxConfig implements WebFluxConfigurer {
       key-store: classpath:cert/give928-keystore.p12
       key-store-type: PKCS12
       key-store-password: 
-      enabled-protocols: TLSv1.3
+      enabled-protocols: TLSv1.2,TLSv1.3
     http2:
       enabled: true
   ```
@@ -284,6 +284,7 @@ public class WebFluxConfig implements WebFluxConfigurer {
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties
 @EnableTransactionManagement
+@RequiredArgsConstructor
 public class ConnectionFactoryConfig extends AbstractR2dbcConfiguration {
     private final MasterConnectionProperties masterConnectionProperties;
     private final SlaveConnectionProperties slaveConnectionProperties;
