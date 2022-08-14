@@ -26,7 +26,6 @@ public class RouterFunctionConfig {
             @Value("classpath:/templates/index.html") final Resource indexHtml) {
         return RouterFunctions.route()
                 .nest(RouterFunctionConfig::isAcceptHtml, builder -> builder
-                        .GET("/", request -> response(indexHtml))
                         .GET(STATIONS, request -> response(indexHtml))
                         .GET("/lines", request -> response(indexHtml))
                         .GET("/sections", request -> response(indexHtml))
@@ -36,6 +35,7 @@ public class RouterFunctionConfig {
                         .GET("/mypage", request -> response(indexHtml))
                         .GET("/mypage/edit", request -> response(indexHtml))
                         .GET("/favorites", request -> response(indexHtml)))
+                .GET("/", request -> response(indexHtml))
                 .build();
     }
     // @formatter:on
