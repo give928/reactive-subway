@@ -1,7 +1,6 @@
 package nextstep.subway.common.config.datasource;
 
 import io.r2dbc.spi.ConnectionFactory;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.r2dbc.connection.lookup.AbstractRoutingConnectionFactory;
 import org.springframework.transaction.reactive.TransactionSynchronizationManager;
@@ -10,7 +9,6 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 
 @Slf4j
-@RequiredArgsConstructor
 public class DynamicRoutingConnectionFactory extends AbstractRoutingConnectionFactory {
     private static final String MASTER = "master";
     private static final String SLAVE = "slave";

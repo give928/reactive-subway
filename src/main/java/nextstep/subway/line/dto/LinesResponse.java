@@ -2,13 +2,10 @@ package nextstep.subway.line.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.line.domain.Line;
 
 import java.time.LocalDateTime;
 
-@RequiredArgsConstructor
-@Builder
 @Getter
 public class LinesResponse {
     private final Long id;
@@ -16,6 +13,15 @@ public class LinesResponse {
     private final String color;
     private final LocalDateTime createdDate;
     private final LocalDateTime modifiedDate;
+
+    @Builder
+    private LinesResponse(Long id, String name, String color, LocalDateTime createdDate, LocalDateTime modifiedDate) {
+        this.id = id;
+        this.name = name;
+        this.color = color;
+        this.createdDate = createdDate;
+        this.modifiedDate = modifiedDate;
+    }
 
     public static LinesResponse of(Line line) {
         return LinesResponse.builder()

@@ -1,8 +1,6 @@
 package nextstep.subway.line.domain;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import nextstep.subway.station.domain.Station;
@@ -16,8 +14,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Getter
 public class Line implements Serializable {
     private static final long serialVersionUID = -1249015528403540198L;

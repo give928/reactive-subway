@@ -1,6 +1,9 @@
 package nextstep.subway.line.dto;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import nextstep.subway.line.domain.Line;
 import nextstep.subway.station.domain.Station;
 import nextstep.subway.station.dto.StationResponse;
@@ -11,8 +14,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-@AllArgsConstructor
-@Builder
 @Getter
 public class LineResponse {
     private Long id;
@@ -21,6 +22,17 @@ public class LineResponse {
     private List<StationResponse> stations;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
+
+    @Builder
+    private LineResponse(Long id, String name, String color, List<StationResponse> stations, LocalDateTime createdDate,
+                        LocalDateTime modifiedDate) {
+        this.id = id;
+        this.name = name;
+        this.color = color;
+        this.stations = stations;
+        this.createdDate = createdDate;
+        this.modifiedDate = modifiedDate;
+    }
 
     public static LineResponse of(Line line) {
         return LineResponse.builder()

@@ -2,7 +2,6 @@ package nextstep.subway.common.aop;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import net.logstash.logback.marker.LogstashMarker;
 import net.logstash.logback.marker.Markers;
 import nextstep.subway.common.annotation.Loggable;
@@ -30,7 +29,6 @@ import static net.logstash.logback.marker.Markers.*;
 @Component
 @Aspect
 @Order(1)
-@RequiredArgsConstructor
 public class LoggableAspect {
     private static final Logger out = LoggerFactory.getLogger("out");
     private static final Logger error = LoggerFactory.getLogger("error");
@@ -41,6 +39,10 @@ public class LoggableAspect {
     private static final String FLUX = "Flux";
 
     private final ObjectMapper objectMapper;
+
+    public LoggableAspect(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Around("@annotation(nextstep.subway.common.annotation.Loggable) && @annotation(loggable)")
     public Object doAround(ProceedingJoinPoint joinPoint, Loggable loggable) throws Throwable {

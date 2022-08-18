@@ -1,6 +1,5 @@
 package nextstep.subway.line.ui;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.line.application.LineService;
 import nextstep.subway.line.dto.LineRequest;
 import nextstep.subway.line.dto.LineResponse;
@@ -15,9 +14,12 @@ import java.util.List;
 
 @RequestMapping("/lines")
 @RestController
-@RequiredArgsConstructor
 public class LineController {
     private final LineService lineService;
+
+    public LineController(LineService lineService) {
+        this.lineService = lineService;
+    }
 
     @PostMapping
     public Mono<ResponseEntity<LineResponse>> createLine(@RequestBody LineRequest lineRequest) {

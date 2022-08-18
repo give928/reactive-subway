@@ -1,6 +1,5 @@
 package nextstep.subway.member.ui;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.domain.AuthenticationPrincipal;
 import nextstep.subway.auth.domain.LoginMember;
 import nextstep.subway.member.application.MemberService;
@@ -14,9 +13,12 @@ import java.net.URI;
 
 @RequestMapping("/members")
 @RestController
-@RequiredArgsConstructor
 public class MemberController {
     private final MemberService memberService;
+
+    public MemberController(MemberService memberService) {
+        this.memberService = memberService;
+    }
 
     @PostMapping
     public Mono<ResponseEntity<Void>> createMember(@RequestBody MemberRequest request) {

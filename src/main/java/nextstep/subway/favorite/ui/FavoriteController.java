@@ -1,6 +1,5 @@
 package nextstep.subway.favorite.ui;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.domain.AuthenticationPrincipal;
 import nextstep.subway.auth.domain.LoginMember;
 import nextstep.subway.favorite.application.FavoriteService;
@@ -15,9 +14,12 @@ import java.util.List;
 
 @RequestMapping("/favorites")
 @RestController
-@RequiredArgsConstructor
 public class FavoriteController {
     private final FavoriteService favoriteService;
+
+    public FavoriteController(FavoriteService favoriteService) {
+        this.favoriteService = favoriteService;
+    }
 
     @PostMapping
     public Mono<ResponseEntity<Void>> createFavorite(@AuthenticationPrincipal LoginMember loginMember, @RequestBody FavoriteRequest request) {

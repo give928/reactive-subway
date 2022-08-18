@@ -1,6 +1,5 @@
 package nextstep.subway.favorite.application;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.domain.LoginMember;
 import nextstep.subway.favorite.domain.Favorite;
 import nextstep.subway.favorite.domain.FavoriteRepository;
@@ -25,10 +24,14 @@ import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 public class FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final StationService stationService;
+
+    public FavoriteService(FavoriteRepository favoriteRepository, StationService stationService) {
+        this.favoriteRepository = favoriteRepository;
+        this.stationService = stationService;
+    }
 
     // @formatter:off
     @Transactional

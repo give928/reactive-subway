@@ -1,6 +1,9 @@
 package nextstep.subway.member.domain;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import nextstep.subway.auth.application.AuthorizationException;
 import nextstep.subway.common.entity.BaseEntity;
 import org.springframework.data.annotation.Id;
@@ -8,8 +11,6 @@ import org.springframework.data.annotation.Id;
 import java.util.Objects;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
-@Builder
 @Getter
 public class Member extends BaseEntity {
     @Id
@@ -17,6 +18,14 @@ public class Member extends BaseEntity {
     private String email;
     private String password;
     private Integer age;
+
+    @Builder
+    private Member(Long id, String email, String password, Integer age) {
+        this.id = id;
+        this.email = email;
+        this.password = password;
+        this.age = age;
+    }
 
     public Member update(Member member) {
         this.email = member.email;

@@ -1,6 +1,5 @@
 package nextstep.subway.auth.ui;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.application.AuthService;
 import nextstep.subway.auth.domain.AuthenticationPrincipal;
 import nextstep.subway.auth.infrastructure.AuthorizationExtractor;
@@ -12,9 +11,12 @@ import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
-@RequiredArgsConstructor
 public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
     private final AuthService authService;
+
+    public AuthenticationPrincipalArgumentResolver(AuthService authService) {
+        this.authService = authService;
+    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {

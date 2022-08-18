@@ -1,6 +1,5 @@
 package nextstep.subway.station.handler;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.common.request.RequestConverter;
 import nextstep.subway.common.request.RequestValidator;
 import nextstep.subway.station.application.StationService;
@@ -16,11 +15,17 @@ import reactor.core.publisher.Mono;
 import java.net.URI;
 
 @Component
-@RequiredArgsConstructor
 public class StationHandler {
     private final StationService stationService;
     private final RequestValidator requestValidator;
     private final RequestConverter requestConverter;
+
+    public StationHandler(StationService stationService, RequestValidator requestValidator,
+                          RequestConverter requestConverter) {
+        this.stationService = stationService;
+        this.requestValidator = requestValidator;
+        this.requestConverter = requestConverter;
+    }
 
     // @formatter:off
     public Mono<ServerResponse> createStation(ServerRequest request) {

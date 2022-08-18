@@ -1,10 +1,15 @@
 package nextstep.subway.auth.dto;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-@AllArgsConstructor
 @Getter
 public class TokenResponse {
     private String accessToken;
+
+    public TokenResponse(String accessToken) {
+        this.accessToken = accessToken;
+    }
 }

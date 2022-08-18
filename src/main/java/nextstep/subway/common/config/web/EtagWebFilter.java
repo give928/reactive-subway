@@ -1,6 +1,5 @@
 package nextstep.subway.common.config.web;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -27,17 +26,21 @@ import static nextstep.subway.common.config.web.WebFluxConfig.STATIC_JS_RESOURCE
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
 public class EtagWebFilter implements WebFilter {
-    private final DefaultResourceLoader defaultResourceLoader;
     private static final String STATIC_ROOT_RESOURCE_PATTERN = "/?*";
     private static final List<String> pathPatterns = Arrays.asList(STATIC_ROOT_RESOURCE_PATTERN,
                                                                    STATIC_JS_RESOURCE_PATTERN,
                                                                    STATIC_CSS_RESOURCE_PATTERN);
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
 
+    private final DefaultResourceLoader defaultResourceLoader;
+
     @Value("${spring.web.resources.static-locations}")
     private String staticLocations;
+
+    public EtagWebFilter(DefaultResourceLoader defaultResourceLoader) {
+        this.defaultResourceLoader = defaultResourceLoader;
+    }
 
     // @formatter:off
     @Override

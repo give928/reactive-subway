@@ -1,6 +1,5 @@
 package nextstep.subway.auth.ui;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.auth.application.AuthService;
 import nextstep.subway.auth.dto.TokenRequest;
 import nextstep.subway.auth.dto.TokenResponse;
@@ -11,9 +10,12 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
 
     @PostMapping("/login/token")
     public Mono<ResponseEntity<TokenResponse>> login(@RequestBody TokenRequest request) {

@@ -1,6 +1,5 @@
 package nextstep.subway.member.application;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.common.annotation.Loggable;
 import nextstep.subway.member.domain.MemberRepository;
 import nextstep.subway.member.dto.MemberRequest;
@@ -11,9 +10,12 @@ import reactor.core.publisher.Mono;
 
 @Service
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 public class MemberService {
     private final MemberRepository memberRepository;
+
+    public MemberService(MemberRepository memberRepository) {
+        this.memberRepository = memberRepository;
+    }
 
     @Loggable
     @Transactional

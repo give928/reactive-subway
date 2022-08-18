@@ -1,7 +1,6 @@
 package nextstep.subway.common.config.datasource;
 
 import io.r2dbc.spi.ConnectionFactory;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,9 +15,12 @@ import java.time.Duration;
 @Configuration
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties
-@RequiredArgsConstructor
 public class ConnectionFactoryConfig extends AbstractR2dbcConfiguration {
     private final MasterConnectionProperties masterConnectionProperties;
+
+    public ConnectionFactoryConfig(MasterConnectionProperties masterConnectionProperties) {
+        this.masterConnectionProperties = masterConnectionProperties;
+    }
 
     @Bean
     @Override

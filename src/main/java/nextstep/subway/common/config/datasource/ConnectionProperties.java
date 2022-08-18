@@ -4,16 +4,12 @@ import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.ConnectionPoolConfiguration;
 import io.r2dbc.pool.PoolingConnectionFactoryProvider;
 import io.r2dbc.spi.*;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConstructorBinding;
 
 import java.time.Duration;
 
 @ConstructorBinding
-@RequiredArgsConstructor
-@Builder
 @Getter
 public class ConnectionProperties {
     private final String driver;
@@ -35,6 +31,33 @@ public class ConnectionProperties {
     private final Integer acquireRetry;
     private final String validationQuery;
     private final Boolean registerJmx;
+
+    public ConnectionProperties(String driver, String protocol, String host, Integer port, String username,
+                                String password,
+                                String database, Duration connectionTimeout, Boolean ssl, String poolName,
+                                Integer initialSize, Integer maxSize, Duration maxIdleTime, Duration maxLifeTime,
+                                Duration maxCreateConnectionTime, Duration maxAcquireTime, Integer acquireRetry,
+                                String validationQuery, Boolean registerJmx) {
+        this.driver = driver;
+        this.protocol = protocol;
+        this.host = host;
+        this.port = port;
+        this.username = username;
+        this.password = password;
+        this.database = database;
+        this.connectionTimeout = connectionTimeout;
+        this.ssl = ssl;
+        this.poolName = poolName;
+        this.initialSize = initialSize;
+        this.maxSize = maxSize;
+        this.maxIdleTime = maxIdleTime;
+        this.maxLifeTime = maxLifeTime;
+        this.maxCreateConnectionTime = maxCreateConnectionTime;
+        this.maxAcquireTime = maxAcquireTime;
+        this.acquireRetry = acquireRetry;
+        this.validationQuery = validationQuery;
+        this.registerJmx = registerJmx;
+    }
 
     public ConnectionPool createConnectionPool() {
         ConnectionFactory connectionFactory = ConnectionFactories.get(

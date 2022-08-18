@@ -1,6 +1,5 @@
 package nextstep.subway.map.application;
 
-import lombok.RequiredArgsConstructor;
 import nextstep.subway.common.annotation.Loggable;
 import nextstep.subway.line.application.LineService;
 import nextstep.subway.map.dto.PathResponse;
@@ -13,11 +12,16 @@ import reactor.util.function.Tuples;
 
 @Service
 @Transactional(readOnly = true)
-@RequiredArgsConstructor
 public class MapService {
     private final LineService lineService;
     private final StationService stationService;
     private final PathService pathService;
+
+    public MapService(LineService lineService, StationService stationService, PathService pathService) {
+        this.lineService = lineService;
+        this.stationService = stationService;
+        this.pathService = pathService;
+    }
 
     // @formatter:off
     @Loggable(json = true)
