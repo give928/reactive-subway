@@ -8,10 +8,11 @@ import nextstep.subway.station.application.StationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuples;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public class MapService {
     private final LineService lineService;
     private final StationService stationService;
@@ -28,6 +29,8 @@ public class MapService {
     public Mono<PathResponse> findPath(Long source, Long target) {
         return lineService.findLines()
                 .collectList()
+                .publishOn(Schedulers.boundedElastic())
+                .subscribeOn(Schedulers.boundedElastic())
                 .flatMap(lines -> stationService.findById(source)
                         .flatMap(sourceStation -> Mono.just(Tuples.of(lines, sourceStation))))
                 .flatMap(tuple -> stationService.findById(target)

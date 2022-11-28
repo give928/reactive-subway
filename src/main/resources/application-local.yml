@@ -14,32 +14,74 @@ spring:
     activate:
       on-profile: local
   r2dbc:
-    driver: pool
-    protocol: mysql
-    host: localhost
-    port: 3306
-    username: subway
-    password: subway_password
-    database: subway
-    connection-timeout: 10s
-    ssl: false
-    poolName: master-pool
-    initial-size: 10
-    max-size: 30
-    max-idle-time: 15s
-    max-life-time: 30s
-    max-create-connection-time: 3s
-    max-acquire-time: 4s
-    acquire-retry: 1
-    validation-query: select 1
-    register-jmx: true
+    master:
+      driver: postgresql
+      host: 127.0.0.1
+      port: 5432
+      user: subway
+      password: subway_password
+      database: subway
+    slave:
+      driver: postgresql
+      host: 127.0.0.1
+      port: 5433
+      user: subway
+      password: subway_password
+      database: subway
+#    pool: # 커넥션 풀 사용
+#      master:
+#        driver: pool
+#        protocol: postgresql
+#        host: localhost
+#        port: 5432
+#        username: subway
+#        password: subway_password
+#        database: subway
+#        connection-timeout: 10s
+#        ssl: false
+#        poolName: master-pool
+#        initial-size: 10
+#        max-size: 50
+#        max-idle-time: 15s
+#        max-life-time: 30s
+#        max-create-connection-time: 3s
+#        max-acquire-time: 4s
+#        acquire-retry: 1
+#        validation-query: select 1
+#        register-jmx: true
+#      slave:
+#        driver: pool
+#        protocol: postgresql
+#        host: localhost
+#        port: 5433
+#        username: subway
+#        password: subway_password
+#        database: subway
+#        connection-timeout: 10s
+#        ssl: false
+#        poolName: slave-pool
+#        initial-size: 10
+#        max-size: 50
+#        max-idle-time: 15s
+#        max-life-time: 30s
+#        max-create-connection-time: 3s
+#        max-acquire-time: 4s
+#        acquire-retry: 1
+#        validation-query: select 1
+#        register-jmx: true
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 1
-    locations: classpath:/db/migration
+    locations: classpath:/db/postgres/migration
+    url: jdbc:postgresql://127.0.0.1:5432/subway
+    user: subway
+    password: subway_password
 
 logging:
   level:
-    org.springframework.r2dbc.core.DefaultDatabaseClient: debug
     nextstep.subway: debug
+    io.r2dbc.postgresql.QUERY: debug
+    io.r2dbc.postgresql.PARAM: debug
+    io.r2dbc.pool.ConnectionPool: debug
+    org.springframework.r2dbc.connection.R2dbcTransactionManager: debug

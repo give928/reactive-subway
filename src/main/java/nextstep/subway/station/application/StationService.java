@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import java.util.Set;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public class StationService {
     private final StationRepository stationRepository;
 
@@ -31,7 +31,6 @@ public class StationService {
     }
     // @formatter:on
 
-    @Transactional(readOnly = true)
     public Flux<StationResponse> findAllStations() {
         return findAll().map(StationResponse::of);
     }

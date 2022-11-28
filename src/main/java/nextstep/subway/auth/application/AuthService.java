@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public class AuthService {
     private final MemberRepository memberRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -26,12 +26,12 @@ public class AuthService {
     @Loggable
     public Mono<TokenResponse> login(TokenRequest request) {
         return memberRepository.findByEmail(request.getEmail())
-                .switchIfEmpty(Mono.defer(() -> Mono.error(new AuthorizationException())))
                 .map(member -> member.checkPassword(request.getPassword()))
                 .onErrorResume(throwable -> Mono.defer(() -> Mono.error(throwable)))
                 .flatMap(member -> Mono.fromCallable(() -> jwtTokenProvider.createToken(member.getEmail()))
                         .subscribeOn(Schedulers.boundedElastic()))
-                .map(TokenResponse::new);
+                .map(TokenResponse::new)
+                .switchIfEmpty(Mono.defer(() -> Mono.error(new AuthorizationException())));
     }
     // @formatter:on
 

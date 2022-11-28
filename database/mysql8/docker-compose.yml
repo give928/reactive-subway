@@ -12,10 +12,11 @@ services:
       - MYSQL_REPLICATION_MODE=master
       - MYSQL_REPLICATION_USER=repl_user
       - MYSQL_REPLICATION_PASSWORD=repl_password
+      - MYSQL_ROOT_PASSWORD=root_password
       - MYSQL_DATABASE=subway
       - MYSQL_USER=subway
       - MYSQL_PASSWORD=subway_password
-      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_AUTHENTICATION_PLUGIN=mysql_native_password
     healthcheck:
       test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
       interval: 15s
@@ -33,12 +34,10 @@ services:
       - MYSQL_REPLICATION_MODE=slave
       - MYSQL_REPLICATION_USER=repl_user
       - MYSQL_REPLICATION_PASSWORD=repl_password
-      - MYSQL_DATABASE=subway
-      - MYSQL_USER=subway
-      - MYSQL_PASSWORD=subway_password
       - MYSQL_MASTER_HOST=mysql-master
       - MYSQL_MASTER_PORT_NUMBER=3306
       - MYSQL_MASTER_ROOT_PASSWORD=root_password
+      - MYSQL_AUTHENTICATION_PLUGIN=mysql_native_password
     healthcheck:
       test: ['CMD', '/opt/bitnami/scripts/mysql/healthcheck.sh']
       interval: 15s

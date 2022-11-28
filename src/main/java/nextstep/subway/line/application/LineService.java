@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, transactionManager = "readTransactionManager")
 public class LineService {
     private final LineRepository lineRepository;
     private final SectionRepository sectionRepository;

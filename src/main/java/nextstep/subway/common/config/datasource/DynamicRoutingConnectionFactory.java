@@ -25,13 +25,10 @@ public class DynamicRoutingConnectionFactory extends AbstractRoutingConnectionFa
     protected Mono<Object> determineCurrentLookupKey() {
         return TransactionSynchronizationManager.forCurrentTransaction()
                 .map(synchronizationManager -> {
-                    log.trace("transactionSynchronizationManager.getCurrentTransactionName() : {}", synchronizationManager.getCurrentTransactionName());
-                    log.trace("transactionSynchronizationManager.isActualTransactionActive() : {}", synchronizationManager.isActualTransactionActive());
-                    log.trace("transactionSynchronizationManager.isCurrentTransactionReadOnly() : {}", synchronizationManager.isCurrentTransactionReadOnly());
-                    if (!synchronizationManager.isActualTransactionActive()) {
-                        return MASTER;
-                    }
-                    if (synchronizationManager.isCurrentTransactionReadOnly()) {
+                    log.debug("synchronizationManager.isActualTransactionActive(): {}", synchronizationManager.isActualTransactionActive());
+                    log.debug("synchronizationManager.isSynchronizationActive(): {}", synchronizationManager.isSynchronizationActive());
+                    log.debug("synchronizationManager.isCurrentTransactionReadOnly(): {}", synchronizationManager.isCurrentTransactionReadOnly());
+                    if (synchronizationManager.isActualTransactionActive() && synchronizationManager.isCurrentTransactionReadOnly()) {
                         log.debug("RoutingConnectionFactory: {}", SLAVE);
                         return SLAVE;
                     }
