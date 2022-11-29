@@ -2,32 +2,26 @@ package nextstep.subway.auth.infrastructure;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-
-import java.util.Collections;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AuthorizationExtractor {
-    public static final String AUTHORIZATION = "Authorization";
-    public static final String BEARER_TYPE = "Bearer";
+    private static final String BEARER_TYPE = "Bearer";
+    private static final String AUTHORIZATION_SPLITTER = ",";
 
     // @formatter:off
-    public static String extract(ServerHttpRequest request) {
-        return Optional.ofNullable(request.getHeaders().get(AUTHORIZATION))
-                .orElse(Collections.emptyList())
-                .stream()
+    public static Mono<String> extract(String value) {
+        return Mono.just(value)
                 .filter(AuthorizationExtractor::isBearerType)
-                .findFirst()
                 .map(AuthorizationExtractor::extractAuthHeader)
-                .orElse(null);
+                .switchIfEmpty(Mono.empty());
     }
     // @formatter:on
 
     private static String extractAuthHeader(String value) {
         String authHeaderValue = value.substring(BEARER_TYPE.length()).trim();
-        if (authHeaderValue.contains(",")) {
-            return authHeaderValue.split(",")[0];
+        if (authHeaderValue.contains(AUTHORIZATION_SPLITTER)) {
+            return authHeaderValue.split(AUTHORIZATION_SPLITTER)[0];
         }
         return authHeaderValue;
     }

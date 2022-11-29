@@ -27,17 +27,15 @@ public class Member extends BaseEntity {
         this.age = age;
     }
 
-    public Member update(Member member) {
+    public void update(Member member) {
         this.email = member.email;
         this.password = member.password;
         this.age = member.age;
-        return this;
     }
 
-    public Member checkPassword(String password) {
+    public void checkPassword(String password) {
         if (!Objects.equals(this.password, password)) {
             throw new AuthorizationException();
         }
-        return this;
     }
 }

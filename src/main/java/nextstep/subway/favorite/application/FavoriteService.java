@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
 import java.util.List;
 import java.util.Map;
@@ -48,7 +47,7 @@ public class FavoriteService {
     public Flux<FavoriteResponse> findFavorites(LoginMember loginMember) {
         return favoriteRepository.findByMemberId(loginMember.getId())
                 .collectList()
-                .flatMap(favorites -> extractStations(favorites).flatMap(map -> Mono.just(Tuples.of(favorites, map))))
+                .zipWhen(this::extractStations)
                 .map(tuple -> mapFavoriteStream(tuple.getT1(), tuple.getT2()))
                 .flatMapMany(Flux::fromStream);
     }
@@ -59,11 +58,13 @@ public class FavoriteService {
                 .collectMap(Station::getId, Function.identity());
     }
 
+    // @formatter:off
     private Set<Long> extractStationIds(List<Favorite> favorites) {
         return favorites.stream()
                 .flatMap(favorite -> Stream.of(favorite.getSourceStationId(), favorite.getTargetStationId()))
                 .collect(Collectors.toSet());
     }
+    // @formatter:on
 
     // @formatter:off
     private static Stream<FavoriteResponse> mapFavoriteStream(List<Favorite> favorites, Map<Long, Station> stations) {
@@ -80,14 +81,13 @@ public class FavoriteService {
     @Transactional
     public Mono<Void> deleteFavorite(LoginMember loginMember, Long id) {
         return favoriteRepository.findById(id)
-                .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
-                .map(favorite -> {
+                .doOnNext(favorite -> {
                     if (!favorite.isCreatedBy(loginMember.getId())) {
-                        throw new HasNotPermissionException(loginMember.getId() + "는 삭제할 권한이 없습니다.");
+                        throw new HasNotPermissionException(String.format("%s는 삭제할 권한이 없습니다.", loginMember.getId()));
                     }
-                    return favorite;
                 })
                 .onErrorResume(throwable -> Mono.defer(() -> Mono.error(throwable)))
+                .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
                 .flatMap(favoriteRepository::delete);
     }
     // @formatter:on

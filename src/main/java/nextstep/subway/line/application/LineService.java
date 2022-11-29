@@ -14,12 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuples;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,13 +37,9 @@ public class LineService {
     // @formatter:off
     @Transactional
     public Mono<LineResponse> saveLine(LineRequest request) {
-        return Mono.just(request)
-                .flatMap(r -> stationService.findById(request.getUpStationId())
-                        .flatMap(upStation -> Mono.just(Tuples.of(r, upStation))))
-                .flatMap(tuple -> stationService.findById(request.getDownStationId())
-                        .flatMap(downStation -> Mono.just(Tuples.of(tuple.getT1(), tuple.getT2(), downStation))))
-                .map(tuple -> new Line(tuple.getT1().getName(), tuple.getT1().getColor(),
-                                       tuple.getT2(), tuple.getT3(), tuple.getT1().getDistance()))
+        return Mono.zip(stationService.findById(request.getUpStationId()),
+                        stationService.findById(request.getDownStationId()))
+                .map(tuple -> mapLine(request, tuple.getT1(), tuple.getT2()))
                 .flatMap(lineRepository::save)
                 .onErrorMap(RuntimeException::new)
                 .onErrorResume(throwable -> Mono.defer(() -> Mono.error(throwable)))
@@ -55,11 +47,14 @@ public class LineService {
                                                                         .stream()
                                                                         .map(section -> section.initLine(savedLine))
                                                                         .collect(Collectors.toList()))
-                        .collectList()
-                        .then(Mono.just(savedLine)))
-                .map(LineResponse::of);
+                        .then(Mono.just(LineResponse.of(savedLine))))
+                .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())));
     }
     // @formatter:on
+
+    private static Line mapLine(LineRequest request, Station upStation, Station downStation) {
+        return new Line(request.getName(), request.getColor(), upStation, downStation, request.getDistance());
+    }
 
     public Flux<LinesResponse> findLineResponses() {
         return findAll().map(LinesResponse::of);
@@ -73,11 +68,13 @@ public class LineService {
     private Flux<Line> findAll() {
         return lineRepository.findAll()
                 .collectList()
-                .flatMap(line -> extractSections().flatMap(sections -> Mono.just(Tuples.of(line, sections))))
+                .zipWith(extractSections())
                 .map(tuple -> tuple.getT1()
                         .stream()
-                        .map(line -> line.initSections((List<Section>) tuple.getT2().get(line.getId()))))
+                        .map(line -> line.initSections(new ArrayList<>(tuple.getT2()
+                                                               .get(line.getId())))))
                 .flatMapMany(Flux::fromStream);
+
     }
     // @formatter:on
 
@@ -85,7 +82,7 @@ public class LineService {
     private Mono<Map<Long, Collection<Section>>> extractSections() {
         return sectionRepository.findAll()
                 .collectList()
-                .flatMap(sections -> extractStations().flatMap(stations -> Mono.just(Tuples.of(sections, stations))))
+                .zipWith(extractStations())
                 .map(tuple -> mapSectionStream(tuple.getT1(), tuple.getT2()))
                 .flatMapMany(Flux::fromStream)
                 .collectMultimap(Section::getLineId);
@@ -107,8 +104,9 @@ public class LineService {
     public Mono<Line> findLineById(Long id) {
         return lineRepository.findById(id)
                 .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
-                .flatMap(line -> extractSections(line.getId()).flatMap(sections -> Mono.just(Tuples.of(line, sections))))
-                .map(tuple -> tuple.getT1().initSections(tuple.getT2()));
+                .zipWhen(line -> extractSections(line.getId()))
+                .map(tuple -> tuple.getT1()
+                        .initSections(tuple.getT2()));
     }
     // @formatter:on
 
@@ -116,8 +114,9 @@ public class LineService {
     private Mono<List<Section>> extractSections(Long id) {
         return sectionRepository.findByLineId(id)
                 .collectList()
-                .flatMap(sections -> extractStations(sections).flatMap(stations -> Mono.just(Tuples.of(sections, stations))))
-                .map(tuple -> mapSectionStream(tuple.getT1(), tuple.getT2()).collect(Collectors.toList()));
+                .zipWhen(this::extractStations)
+                .map(tuple -> mapSectionStream(tuple.getT1(), tuple.getT2())
+                        .collect(Collectors.toList()));
     }
     // @formatter:on
 
@@ -143,31 +142,23 @@ public class LineService {
     public Mono<Line> updateLine(Long id, LineRequest lineUpdateRequest) {
         return lineRepository.findById(id)
                 .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
-                .map(line -> line.update(new Line(lineUpdateRequest.getName(), lineUpdateRequest.getColor())))
+                .doOnNext(line -> line.update(new Line(lineUpdateRequest.getName(), lineUpdateRequest.getColor())))
                 .flatMap(lineRepository::save);
     }
     // @formatter:on
 
-    // @formatter:off
     @Transactional
     public Mono<Void> deleteLineById(Long id) {
-        return Mono.just(id)
-                .flatMap(lineId -> sectionRepository.deleteByLineId(lineId)
-                        .thenReturn(lineId))
-                .flatMap(lineId -> lineRepository.deleteById(lineId)
-                        .then());
+        return Mono.when(sectionRepository.deleteByLineId(id), lineRepository.deleteById(id));
     }
-    // @formatter:on
 
     // @formatter:off
     @Transactional
     public Mono<Void> addLineStation(Long lineId, SectionRequest request) {
         return findLineById(lineId)
-                .flatMap(line -> stationService.findById(request.getUpStationId())
-                        .flatMap(upStation -> Mono.just(Tuples.of(line, upStation))))
-                .flatMap(tuple -> stationService.findById(request.getDownStationId())
-                        .flatMap(downStation -> Mono.just(Tuples.of(tuple.getT1(), tuple.getT2(), downStation))))
-                .map(tuple -> tuple.getT1().addLineSection(tuple.getT2(), tuple.getT3(), request.getDistance()))
+                .flatMap(line -> Mono.zip(stationService.findById(request.getUpStationId()),
+                                          stationService.findById(request.getDownStationId()))
+                        .map(tuple -> line.addLineSection(tuple.getT1(), tuple.getT2(), request.getDistance())))
                 .flatMapMany(sectionRepository::saveAll)
                 .then();
     }
@@ -178,11 +169,8 @@ public class LineService {
     public Mono<Void> removeLineStation(Long lineId, Long stationId) {
         return findLineById(lineId)
                 .map(line -> line.removeStation(stationId))
-                .flatMap(map -> {
-                    Mono<Void> removeSections = sectionRepository.deleteAll(map.get("removeSections"));
-                    Mono<Void> createSections = sectionRepository.saveAll(map.get("createSections")).then();
-                    return Mono.when(removeSections, createSections);
-                });
+                .flatMap(map -> Mono.when(sectionRepository.deleteAll(map.get("removeSections")),
+                                          sectionRepository.saveAll(map.get("createSections"))));
     }
     // @formatter:on
 }

@@ -40,7 +40,7 @@ public class MemberService {
     public Mono<Void> updateMember(Long id, MemberRequest param) {
         return memberRepository.findById(id)
                 .switchIfEmpty(Mono.defer(() -> Mono.error(new RuntimeException())))
-                .map(member -> member.update(param.toMember()))
+                .doOnNext(member -> member.update(param.toMember()))
                 .flatMap(memberRepository::save)
                 .then();
     }

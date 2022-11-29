@@ -8,9 +8,13 @@ public class LoginMember {
     private final String email;
     private final Integer age;
 
-    public LoginMember(Long id, String email, Integer age) {
+    private LoginMember(Long id, String email, Integer age) {
         this.id = id;
         this.email = email;
         this.age = age;
+    }
+
+    public static LoginMember of(Long id, String email, Integer age) {
+        return new LoginMember(id, email, age);
     }
 }

@@ -42,7 +42,7 @@ class AuthServiceTest {
                                                                                      .password(PASSWORD)
                                                                                      .age(AGE)
                                                                                      .build()));
-        when(jwtTokenProvider.createToken(anyString())).thenReturn("TOKEN");
+        when(jwtTokenProvider.createToken(anyString())).thenReturn(Mono.just("TOKEN"));
 
         Mono<TokenResponse> token = authService.login(new TokenRequest(EMAIL, PASSWORD));
 

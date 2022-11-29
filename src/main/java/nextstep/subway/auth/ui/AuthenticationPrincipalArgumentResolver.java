@@ -9,9 +9,9 @@ import org.springframework.web.reactive.result.method.HandlerMethodArgumentResol
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
-
 public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArgumentResolver {
+    private static final String AUTHORIZATION = "Authorization";
+
     private final AuthService authService;
 
     public AuthenticationPrincipalArgumentResolver(AuthService authService) {
@@ -26,7 +26,9 @@ public class AuthenticationPrincipalArgumentResolver implements HandlerMethodArg
     @Override
     public Mono<Object> resolveArgument(MethodParameter parameter, BindingContext bindingContext,
                                         ServerWebExchange exchange) {
-        return Mono.just(AuthorizationExtractor.extract(Objects.requireNonNull(exchange.getRequest())))
+        return Mono.just(exchange.getRequest())
+                .flatMap(serverHttpRequest -> AuthorizationExtractor.extract(serverHttpRequest.getHeaders()
+                        .getFirst(AUTHORIZATION)))
                 .flatMap(authService::findMemberByToken);
     }
 }

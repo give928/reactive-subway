@@ -1,9 +1,13 @@
 package nextstep.subway.auth.infrastructure;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -20,36 +24,53 @@ public class JwtTokenProvider {
 
     private SecretKey key;
 
+    // @formatter:off
     @PostConstruct
     protected void init() {
-        String secret = Base64.getEncoder().encodeToString(secretKey.getBytes());
+        String secret = Base64.getEncoder()
+                .encodeToString(secretKey.getBytes());
         key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
+    // @formatter:on
 
-    public String createToken(String payload) {
-        Claims claims = Jwts.claims().setSubject(payload);
+    // @formatter:off
+    public Mono<String> createToken(String payload) {
+        Claims claims = Jwts.claims()
+                .setSubject(payload);
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
 
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(validity)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+        return Mono.fromCallable(() -> Jwts.builder()
+                        .setClaims(claims)
+                        .setIssuedAt(now)
+                        .setExpiration(validity)
+                        .signWith(key, SignatureAlgorithm.HS256)
+                        .compact())
+                .subscribeOn(Schedulers.boundedElastic());
     }
+    // @formatter:on
 
-    public String getPayload(String token) {
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody().getSubject();
+    // @formatter:off
+    public Mono<String> getPayload(String token) {
+        return Mono.just(Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject());
     }
+    // @formatter:on
 
-    public boolean validateToken(String token) {
-        try {
-            Jws<Claims> claims = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
-
-            return !claims.getBody().getExpiration().before(new Date());
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+    // @formatter:off
+    public Mono<Boolean> validateToken(String token) {
+        return Mono.fromCallable(() -> Jwts.parserBuilder().setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration()
+                .after(new Date()))
+                .subscribeOn(Schedulers.boundedElastic())
+                .onErrorResume(throwable -> Mono.just(Boolean.FALSE));
     }
+    // @formatter:on
 }

@@ -17,6 +17,7 @@ import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@DisplayName("정적 자원 관련 기능")
 class StaticResourcesTest extends AcceptanceTest {
     @Autowired
     private ApplicationContext applicationContext;
