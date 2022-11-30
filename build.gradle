@@ -36,13 +36,13 @@ dependencies {
 
 	// flyway
 	implementation 'org.flywaydb:flyway-core:8.5.13'
-	// flyway -> jdbc 의존
+	// flyway -> jdbc
 	implementation 'org.postgresql:postgresql:42.5.1'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
 	// r2dbc mysql
-//	implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
-//	implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.1.7'
+//    implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
+//    implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.1.7'
 
 	// r2dbc postgres
 	implementation 'io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE'
@@ -60,9 +60,6 @@ dependencies {
 	implementation 'io.projectreactor.tools:blockhound:1.0.6.RELEASE'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'io.projectreactor.tools:blockhound-junit-platform:1.0.6.RELEASE'
-
-	// rest-assured
-	testImplementation 'io.rest-assured:rest-assured'
 
 	// r2dbc h2
 	testRuntimeOnly 'io.r2dbc:r2dbc-h2'

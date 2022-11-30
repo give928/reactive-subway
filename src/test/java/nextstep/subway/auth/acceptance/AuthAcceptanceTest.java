@@ -1,23 +1,22 @@
 package nextstep.subway.auth.acceptance;
 
-import io.restassured.RestAssured;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
 import nextstep.subway.auth.dto.TokenResponse;
+import nextstep.subway.member.dto.MemberResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static nextstep.subway.member.MemberAcceptanceTest.회원_생성을_요청;
 import static nextstep.subway.member.MemberAcceptanceTest.회원_정보_조회됨;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Bearer Auth 관련 기능")
-public class AuthAcceptanceTest extends AcceptanceTest {
+class AuthAcceptanceTest extends AcceptanceTest {
     private static final String EMAIL = "email@email.com";
     private static final String PASSWORD = "password";
     private static final Integer AGE = 20;
@@ -28,7 +27,7 @@ public class AuthAcceptanceTest extends AcceptanceTest {
         회원_등록되어_있음(EMAIL, PASSWORD, AGE);
         TokenResponse tokenResponse = 로그인_되어_있음(EMAIL, PASSWORD);
 
-        ExtractableResponse<Response> response = 내_회원_정보_조회_요청(tokenResponse);
+        Mono<ResponseEntity<MemberResponse>> response = 내_회원_정보_조회_요청(tokenResponse);
 
         회원_정보_조회됨(response, EMAIL, AGE);
     }
@@ -38,18 +37,9 @@ public class AuthAcceptanceTest extends AcceptanceTest {
     void myInfoWithBadBearerAuth() {
         회원_등록되어_있음(EMAIL, PASSWORD, AGE);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("email", EMAIL + "OTHER");
-        params.put("password", PASSWORD);
+        Mono<ResponseEntity<TokenResponse>> response = 로그인_요청(EMAIL + "OTHER", PASSWORD);
 
-        RestAssured.given().log().all().
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                post("/login/token").
-                then().
-                log().all().
-                statusCode(HttpStatus.UNAUTHORIZED.value());
+        로그인_실패(response);
     }
 
     @DisplayName("Bearer Auth 유효하지 않은 토큰")
@@ -57,50 +47,32 @@ public class AuthAcceptanceTest extends AcceptanceTest {
     void myInfoWithWrongBearerAuth() {
         TokenResponse tokenResponse = new TokenResponse("accesstoken");
 
-        RestAssured.given().log().all().
-                auth().oauth2(tokenResponse.getAccessToken()).
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get("/members/me").
-                then().
-                log().all().
-                statusCode(HttpStatus.UNAUTHORIZED.value());
+        Mono<ResponseEntity<MemberResponse>> response = 내_회원_정보_조회_요청(tokenResponse);
+
+        내_회원_정보_조회_실패(response);
     }
 
-    public static ExtractableResponse<Response> 회원_등록되어_있음(String email, String password, Integer age) {
-        return 회원_생성을_요청(email, password, age);
+    private static void 로그인_실패(Mono<ResponseEntity<TokenResponse>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+                })
+                .verifyComplete();
     }
 
-    public static TokenResponse 로그인_되어_있음(String email, String password) {
-        ExtractableResponse<Response> response = 로그인_요청(email, password);
-        return response.as(TokenResponse.class);
+    public Mono<ResponseEntity<MemberResponse>> 내_회원_정보_조회_요청(TokenResponse tokenResponse) {
+        return webClient().get()
+                .uri("/members/me")
+                .header(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", tokenResponse.getAccessToken()))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchangeToMono(clientResponse -> clientResponse.toEntity(MemberResponse.class));
     }
 
-    public static ExtractableResponse<Response> 로그인_요청(String email, String password) {
-        Map<String, String> params = new HashMap<>();
-        params.put("email", email);
-        params.put("password", password);
-
-        return RestAssured.given().log().all().
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                post("/login/token").
-                then().
-                log().all().
-                statusCode(HttpStatus.OK.value()).
-                extract();
-    }
-
-    public static ExtractableResponse<Response> 내_회원_정보_조회_요청(TokenResponse tokenResponse) {
-        return RestAssured.given().log().all().
-                auth().oauth2(tokenResponse.getAccessToken()).
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get("/members/me").
-                then().
-                log().all().
-                statusCode(HttpStatus.OK.value()).
-                extract();
+    private static void 내_회원_정보_조회_실패(Mono<ResponseEntity<MemberResponse>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+                })
+                .verifyComplete();
     }
 }

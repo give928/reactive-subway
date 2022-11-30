@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 public class DatabaseCleanup implements InitializingBean {
     private final R2dbcEntityTemplate template;
 
+    private boolean initProperties = false;
     private List<String> tableNames;
 
     public DatabaseCleanup(R2dbcEntityTemplate template) {
@@ -33,6 +34,11 @@ public class DatabaseCleanup implements InitializingBean {
                 .stream()
                 .map(stringObjectMap -> (String) stringObjectMap.get("TABLE_NAME"))
                 .collect(Collectors.toList());
+        initProperties = !tableNames.isEmpty();
+    }
+
+    public boolean isInitProperties() {
+        return initProperties;
     }
 
     public void execute() {

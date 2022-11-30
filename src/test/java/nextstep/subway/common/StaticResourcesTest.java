@@ -1,7 +1,5 @@
 package nextstep.subway.common;
 
-import io.restassured.RestAssured;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +8,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -36,52 +38,82 @@ class StaticResourcesTest extends AcceptanceTest {
     @DisplayName("정적 자원 테스트")
     @Test
     void staticResource() {
+        javascript();
+
+        css();
+    }
+
+    private void javascript() {
         // when
-        Response javascriptResponse = RestAssured.given()
-                .get("/js/main.js");
+        Mono<ResponseEntity<String>> javascriptResponse = webClient().get()
+                .uri("/js/main.js")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchangeToMono(clientResponse -> clientResponse.toEntity(String.class));
 
         // then
-        assertThat(javascriptResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(javascriptResponse.getHeader(HttpHeaders.CONTENT_ENCODING)).isEqualTo("gzip");
-        assertThat(javascriptResponse.getHeader(HttpHeaders.TRANSFER_ENCODING)).isEqualTo("chunked");
-        assertThat(javascriptResponse.getHeader(HttpHeaders.ETAG)).isNotBlank();
-        assertThat(javascriptResponse.getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-cache, private");
-        assertThat(javascriptResponse.getBody().asString()).isNotBlank();
+        StepVerifier.create(javascriptResponse)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+//                    assertThat(r.getHeaders().getFirst(HttpHeaders.CONTENT_ENCODING)).isEqualTo("gzip");
+                    assertThat(r.getHeaders().getFirst(HttpHeaders.TRANSFER_ENCODING)).isEqualTo("chunked");
+                    assertThat(r.getHeaders().getFirst(HttpHeaders.ETAG)).isNotBlank();
+                    assertThat(r.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-cache, private");
+                    assertThat(r.getBody()).isNotBlank();
+                })
+                .verifyComplete();
+    }
 
+    private void css() {
         // given
         String resourcePath = "/css/test.css";
         initCss(resourcePath);
 
         // when
-        Response firstResponse = RestAssured.given()
-                .get(resourcePath);
-        String etagValue = firstResponse.getHeader(HttpHeaders.ETAG);
+        ResponseEntity<String> firstResponse = webClient().get()
+                .uri(resourcePath)
+                .exchangeToMono(clientResponse -> clientResponse.toEntity(String.class))
+                .block();
 
         // then
-        assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(firstResponse.getHeader(HttpHeaders.ETAG)).isNotBlank();
-        assertThat(firstResponse.getHeader(HttpHeaders.CACHE_CONTROL)).isEqualTo("max-age=31536000");
-        assertThat(firstResponse.getBody().asString()).isNotBlank();
+        assertThat(firstResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(firstResponse.getHeaders().getFirst(HttpHeaders.ETAG)).isNotBlank();
+        assertThat(firstResponse.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL)).isEqualTo("max-age=31536000");
+        assertThat(firstResponse.getBody()).isNotBlank();
+
+        // given
+        String etagValue = firstResponse.getHeaders().getFirst(HttpHeaders.ETAG);
 
         // when
-        Response secondResponse = RestAssured.given()
-                .headers("If-None-Match", etagValue)
-                .get(resourcePath);
+        Mono<ResponseEntity<String>> secondResponse = webClient().get()
+                .uri(resourcePath)
+                .header(HttpHeaders.IF_NONE_MATCH, etagValue)
+                .exchangeToMono(clientResponse -> clientResponse.toEntity(String.class));
 
         // then
-        assertThat(secondResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_MODIFIED.value());
-        assertThat(secondResponse.getBody().asString()).isEmpty();
+        StepVerifier.create(secondResponse)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.NOT_MODIFIED);
+                    assertThat(r.getBody()).isNullOrEmpty();
+                })
+                .verifyComplete();
 
         // when
         modifyCss(resourcePath); // 정적 리소스 변경
-        Response thirdResponse = RestAssured.given()
-                .headers("If-None-Match", etagValue)
-                .get(resourcePath);
+        Mono<ResponseEntity<String>> thirdResponse = webClient().get()
+                .uri(resourcePath)
+                .header(HttpHeaders.IF_NONE_MATCH, etagValue)
+                .exchangeToMono(clientResponse -> clientResponse.toEntity(String.class));
 
         // then
-        assertThat(thirdResponse.getStatusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(thirdResponse.getHeader(HttpHeaders.ETAG)).isNotBlank();
-        assertThat(thirdResponse.getBody().asString()).isNotBlank();
+        StepVerifier.create(thirdResponse)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(r.getHeaders().getFirst(HttpHeaders.ETAG)).isNotBlank();
+                    assertThat(r.getBody()).isNotBlank();
+                })
+                .verifyComplete();
+
+        deleteCss(resourcePath);
     }
 
     private void modifyCss(String path) {
@@ -97,22 +129,32 @@ class StaticResourcesTest extends AcceptanceTest {
     }
 
     private void writeCss(String path, String content) {
-        FileWriter fileWriter = null;
+        File file;
+        try {
+            Resource resource = applicationContext.getResource("classpath:/static" + path);
+            if (!resource.exists()) {
+                file = new File(resource.createRelative("")
+                                        .getFile()
+                                        .getAbsolutePath() + "/" + resource.getFilename());
+                file.createNewFile();
+            } else {
+                file = resource.getFile();
+            }
+            try (FileWriter fileWriter = new FileWriter(file)) {
+                fileWriter.append(content);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void deleteCss(String path) {
         try {
             Resource resource = applicationContext.getResource("classpath:/static" + path);
             File file = resource.getFile();
-            fileWriter = new FileWriter(file);
-            fileWriter.append(content);
+            file.delete();
         } catch (IOException e) {
             throw new RuntimeException(e);
-        } finally {
-            if (fileWriter != null) {
-                try {
-                    fileWriter.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
         }
     }
 }

@@ -1,25 +1,26 @@
 package nextstep.subway.favorite;
 
-import io.restassured.RestAssured;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
 import nextstep.subway.auth.dto.TokenResponse;
-import nextstep.subway.line.acceptance.LineAcceptanceTest;
+import nextstep.subway.favorite.dto.FavoriteResponse;
 import nextstep.subway.line.dto.LineResponse;
 import nextstep.subway.station.dto.StationResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static nextstep.subway.auth.acceptance.AuthAcceptanceTest.로그인_되어_있음;
-import static nextstep.subway.auth.acceptance.AuthAcceptanceTest.회원_등록되어_있음;
-import static nextstep.subway.line.acceptance.LineSectionAcceptanceTest.지하철_노선에_지하철역_등록_요청;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("즐겨찾기 관련 기능")
@@ -51,7 +52,7 @@ public class FavoriteAcceptanceTest extends AcceptanceTest {
         lineCreateParams.put("upStationId", 강남역.getId() + "");
         lineCreateParams.put("downStationId", 광교역.getId() + "");
         lineCreateParams.put("distance", 10 + "");
-        신분당선 = LineAcceptanceTest.지하철_노선_등록되어_있음(lineCreateParams).as(LineResponse.class);
+        신분당선 = 지하철_노선_등록되어_있음(lineCreateParams).getBody();
 
         지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 3);
         지하철_노선에_지하철역_등록_요청(신분당선, 양재역, 정자역, 3);
@@ -64,69 +65,70 @@ public class FavoriteAcceptanceTest extends AcceptanceTest {
     @Test
     void manageMember() {
         // when
-        ExtractableResponse<Response> createResponse = 즐겨찾기_생성을_요청(사용자, 강남역, 정자역);
+        ResponseEntity<Void> createResponse = 즐겨찾기_생성을_요청(사용자, 강남역, 정자역);
         // then
         즐겨찾기_생성됨(createResponse);
 
         // when
-        ExtractableResponse<Response> findResponse = 즐겨찾기_목록_조회_요청(사용자);
+        Mono<ResponseEntity<List<FavoriteResponse>>> findResponse = 즐겨찾기_목록_조회_요청(사용자);
         // then
         즐겨찾기_목록_조회됨(findResponse);
 
         // when
-        ExtractableResponse<Response> deleteResponse = 즐겨찾기_삭제_요청(사용자, createResponse);
+        Mono<ResponseEntity<Void>> deleteResponse = 즐겨찾기_삭제_요청(사용자, createResponse);
         // then
         즐겨찾기_삭제됨(deleteResponse);
     }
 
-    public static ExtractableResponse<Response> 즐겨찾기_생성을_요청(TokenResponse tokenResponse, StationResponse source, StationResponse target) {
-        Map<String, String> params = new HashMap<>();
-        params.put("source", source.getId() + "");
-        params.put("target", target.getId() + "");
-
-        return RestAssured.given().log().all().
-                auth().oauth2(tokenResponse.getAccessToken()).
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                post("/favorites").
-                then().
-                log().all().
-                extract();
+    public ResponseEntity<Void> 즐겨찾기_생성을_요청(TokenResponse tokenResponse, StationResponse source,
+                                            StationResponse target) {
+        return webClient().post()
+                .uri("/favorites")
+                .contentType(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", tokenResponse.getAccessToken()))
+                .body(BodyInserters.fromValue(
+                        Map.of("source", source.getId().toString(), "target", target.getId().toString())))
+                .exchangeToMono(ClientResponse::toBodilessEntity)
+                .block();
     }
 
-    public static ExtractableResponse<Response> 즐겨찾기_목록_조회_요청(TokenResponse tokenResponse) {
-        return RestAssured.given().log().all().
-                auth().oauth2(tokenResponse.getAccessToken()).
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get("/favorites").
-                then().
-                log().all().
-                extract();
+    public Mono<ResponseEntity<List<FavoriteResponse>>> 즐겨찾기_목록_조회_요청(TokenResponse tokenResponse) {
+        return webClient().get()
+                .uri("/favorites")
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", tokenResponse.getAccessToken()))
+                .exchangeToMono(clientResponse -> clientResponse.toEntityList(FavoriteResponse.class));
     }
 
-    public static ExtractableResponse<Response> 즐겨찾기_삭제_요청(TokenResponse tokenResponse, ExtractableResponse<Response> response) {
-        String uri = response.header("Location");
+    public Mono<ResponseEntity<Void>> 즐겨찾기_삭제_요청(TokenResponse tokenResponse,
+                                                           ResponseEntity<Void> response) {
+        String uri = response.getHeaders().getFirst("Location");
+        assert uri != null;
 
-        return RestAssured.given().log().all().
-                auth().oauth2(tokenResponse.getAccessToken()).
-                when().
-                delete(uri).
-                then().
-                log().all().
-                extract();
+        return webClient().delete()
+                .uri(uri)
+                .header(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", tokenResponse.getAccessToken()))
+                .exchangeToMono(ClientResponse::toBodilessEntity);
     }
 
-    public static void 즐겨찾기_생성됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.CREATED.value());
+    public static void 즐겨찾기_생성됨(ResponseEntity<Void> response) {
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
-    public static void 즐겨찾기_목록_조회됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+    public static void 즐겨찾기_목록_조회됨(Mono<ResponseEntity<List<FavoriteResponse>>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(r.getBody()).isNotEmpty();
+                })
+                .verifyComplete();
     }
 
-    public static void 즐겨찾기_삭제됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    public static void 즐겨찾기_삭제됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+                })
+                .verifyComplete();
     }
 }

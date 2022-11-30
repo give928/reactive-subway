@@ -32,7 +32,6 @@ Dependencies:
 - flyway
 - reactor test
 - blockhound
-- rest assured
 
 <br />
 
@@ -477,328 +476,328 @@ public class WebFluxConfig implements WebFluxConfigurer {
         - `TransactionAwareConnectionFactoryProxy` 는 `ConnectionFactory` 를 타겟으로 하는 프록시로 스프링이 관리하는 트랜잭션을 인식할 수 있게 해준다.
           - 이 클래스는 스프링의 R2DBC 기능과 통합되지 않은 R2DBC 클라이언트를 사용할 때 필요하다.
           - 공식문서에서는 가능하다면 대상 `ConnectionFactory` 에 대한 프록시 없이도 트랜잭션 참여를 얻기 위해 Spring 의 `ConnectionFactoryUtils` 또는 `DatabaseClient` 를 사용하여 애초에 이러한 프록시를 정의할 필요가 없도록 하는 것을 권장한다고 한다.
-        <details>
-        <summary>접기/펼치기</summary>
+          <details>
+          <summary>접기/펼치기</summary>
+          
+          - 설정
+            ```java
+            public class ConnectionFactoryConfig extends AbstractR2dbcConfiguration {
+                @Bean
+                @Override
+                public ConnectionFactory connectionFactory() {
+                    return new DynamicRoutingConnectionFactory(
+                            ConnectionFactories.get(masterConnectionProperties.getConnectionFactoryOptions()),
+                            ConnectionFactories.get(slaveConnectionProperties.getConnectionFactoryOptions()));
+                }
+          
+                @Bean
+                public ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {
+                    return new R2dbcTransactionManager(new TransactionAwareConnectionFactoryProxy(connectionFactory));
+                }
+            }
+            ```
+          
+          - 읽기
+            ```
+            DEBUG 56925 --- [ctor-http-nio-2] o.s.r.c.R2dbcTransactionManager          : Creating new transaction with name [nextstep.subway.station.application.StationService.findAllStations]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly
+            DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = false
+            DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = false
+            DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
+            DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
+            DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Acquired Connection [MonoMap] for R2DBC transaction
+            DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Switching R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]] to manual commit
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: BEGIN
+            DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = true
+            DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = true
+            DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = true
+            DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: slave
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT station.* FROM station
+            DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Initiating transaction commit
+            DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Committing R2DBC transaction on Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]]
+            DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: COMMIT
+            DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Releasing R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]] after transaction
+            ```
+          
+          - 쓰기 예외 발생
+            ```
+            DEBUG 56925 --- [ctor-http-nio-4] o.s.r.c.R2dbcTransactionManager          : Creating new transaction with name [nextstep.subway.member.application.MemberService.test]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT
+            DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = false
+            DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = false
+            DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
+            DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
+            DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Acquired Connection [MonoMap] for R2DBC transaction
+            DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Switching R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]] to manual commit
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: BEGIN
+            DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = true
+            DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = true
+            DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
+            DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT member.id, member.email, member.password, member.age, member.created_date, member.modified_date FROM member WHERE member.email = $1
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: UPDATE member SET email = $1, password = $2, age = $3, created_date = $4, modified_date = $5 WHERE member.id = $6
+            DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Initiating transaction rollback
+            DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Rolling back R2DBC transaction on Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]]
+            DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: ROLLBACK
+            DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Releasing R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]] after transaction
+            ERROR 56925 --- [actor-tcp-nio-2] c.a.GlobalRestControllerExceptionHandler : handle RuntimeException
+          
+            java.lang.IllegalStateException: force exception!!
+                at nextstep.subway.member.application.MemberService.lambda$test$4(MemberService.java:70)
+                Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException:
+            Error has been observed at the following site(s):
+                *__checkpoint ⇢ Handler nextstep.subway.member.ui.MemberController#test() [DispatcherHandler]
+            Original Stack Trace:
+                    ...
+            ```
+          
+          </details>
 
-        - 설정
+        - 또한 트랜잭션 내에서 publisher 를 결합(Mono.zip, mono.zipWith, mono.zipWhen, Mono.when ...)할 때 SQL 을 2회 이상 실행하면 예외가 발생한다.
+          - 동일한 스레드에서 순서대로 실행되는 것 같은데 왜?
+            - SQL 이 실행될 때 마다 새로운 커넥션으로 연결하는 것 같다. 2번째 SQL 이 실행될 때 `TransactionSynchronizationManager` `ConnectionHolder` 에 이미 이전 커넥션이 있어서 예외가 발생한다.
+          - 순차적으로 실행하면(첫 번째 반환 값을 flatMap 으로 변형할 때 두 번째 반환 값과 함께 Tuple 로 반환) 동일한 커넥션에서 실행되는지 예외가 발생하지 않는다.
+          <details>
+          <summary>접기/펼치기</summary>
+      
           ```java
-          public class ConnectionFactoryConfig extends AbstractR2dbcConfiguration {
-              @Bean
-              @Override
-              public ConnectionFactory connectionFactory() {
-                  return new DynamicRoutingConnectionFactory(
-                          ConnectionFactories.get(masterConnectionProperties.getConnectionFactoryOptions()),
-                          ConnectionFactories.get(slaveConnectionProperties.getConnectionFactoryOptions()));
-              }
-
-              @Bean
-              public ReactiveTransactionManager transactionManager(ConnectionFactory connectionFactory) {
-                  return new R2dbcTransactionManager(new TransactionAwareConnectionFactoryProxy(connectionFactory));
-              }
+          // 예외 발생함
+          public Flux<Line> test() {
+              return lineRepository.findAll()
+                      .collectList()
+                      .zipWith(sectionRepository.findAll())
+                      //...
+                      .flatMapMany(Flux::fromStream);
+          }
+          
+          // 예외 발생하지 않음
+          public Flux<Line> test() {
+              return lineRepository.findAll()
+                      .collectList()
+                      .flatMap(lines -> sectionRepository.findAll()
+                              .flatMap(sections -> Mono.just(Tuples.of(lines, sections))))
+                      //...
+                      .flatMapMany(Flux::fromStream);
           }
           ```
-        
-        - 읽기
+      
           ```
-          DEBUG 56925 --- [ctor-http-nio-2] o.s.r.c.R2dbcTransactionManager          : Creating new transaction with name [nextstep.subway.station.application.StationService.findAllStations]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT,readOnly
-          DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = false
-          DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = false
-          DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
-          DEBUG 56925 --- [ctor-http-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
-          DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Acquired Connection [MonoMap] for R2DBC transaction
-          DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Switching R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]] to manual commit
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: BEGIN
-          DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = true
-          DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = true
-          DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = true
-          DEBUG 56925 --- [actor-tcp-nio-1] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: slave
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: SELECT station.* FROM station
-          DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Initiating transaction commit
-          DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Committing R2DBC transaction on Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]]
-          DEBUG 56925 --- [actor-tcp-nio-1] io.r2dbc.postgresql.QUERY                : Executing query: COMMIT
-          DEBUG 56925 --- [actor-tcp-nio-1] o.s.r.c.R2dbcTransactionManager          : Releasing R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4e641ca, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@1012431e}]] after transaction
-          ```
-
-        - 쓰기 예외 발생
-          ```
-          DEBUG 56925 --- [ctor-http-nio-4] o.s.r.c.R2dbcTransactionManager          : Creating new transaction with name [nextstep.subway.member.application.MemberService.test]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT
-          DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = false
-          DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = false
-          DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
-          DEBUG 56925 --- [ctor-http-nio-4] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
-          DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Acquired Connection [MonoMap] for R2DBC transaction
-          DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Switching R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]] to manual commit
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: BEGIN
-          DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isActualTransactionActive() = true
-          DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isSynchronizationActive() = true
-          DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : synchronizationManager.isCurrentTransactionReadOnly() = false
-          DEBUG 56925 --- [actor-tcp-nio-2] .s.c.c.d.DynamicRoutingConnectionFactory : RoutingConnectionFactory: master
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SHOW TRANSACTION ISOLATION LEVEL
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT oid, typname FROM pg_catalog.pg_type WHERE typname IN ('hstore')
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: SELECT member.id, member.email, member.password, member.age, member.created_date, member.modified_date FROM member WHERE member.email = $1
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: UPDATE member SET email = $1, password = $2, age = $3, created_date = $4, modified_date = $5 WHERE member.id = $6
-          DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Initiating transaction rollback
-          DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Rolling back R2DBC transaction on Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]]
-          DEBUG 56925 --- [actor-tcp-nio-2] io.r2dbc.postgresql.QUERY                : Executing query: ROLLBACK
-          DEBUG 56925 --- [actor-tcp-nio-2] o.s.r.c.R2dbcTransactionManager          : Releasing R2DBC Connection [Transaction-aware proxy for target Connection [PostgresqlConnection{master, client=io.r2dbc.postgresql.client.ReactorNettyClient@4ad38cc8, codecs=io.r2dbc.postgresql.codec.DefaultCodecs@73d521f7}]] after transaction
-          ERROR 56925 --- [actor-tcp-nio-2] c.a.GlobalRestControllerExceptionHandler : handle RuntimeException
-
-          java.lang.IllegalStateException: force exception!!
-              at nextstep.subway.member.application.MemberService.lambda$test$4(MemberService.java:70)
+          org.springframework.dao.DataAccessResourceFailureException: Failed to obtain R2DBC Connection; nested exception is java.lang.IllegalStateException: Already value [org.springframework.r2dbc.connection.ConnectionHolder@33bee026] for key [PostgresqlConnectionFactory{clientFactory=io.r2dbc.postgresql.PostgresqlConnectionFactory$$Lambda$742/0x0000000800656040@34738205, configuration=PostgresqlConnectionConfiguration{applicationName='r2dbc-postgresql', autodetectExtensions='true', compatibilityMode=false, connectTimeout=null, database='subway', extensions=[], fetchSize=io.r2dbc.postgresql.PostgresqlConnectionConfiguration$Builder$$Lambda$688/0x0000000800648840@21bdd054, forceBinary='false', host='127.0.0.1', lockWaitTimeout='null, loopResources='null', options='{}', password='***************', port=5432, preferAttachedBuffers=false, socket=null, statementTimeout=null, tcpKeepAlive=false, tcpNoDelay=true, username='subway'}, extensions=io.r2dbc.postgresql.Extensions@25befc63}] bound to context
+              at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$getConnection$0(ConnectionFactoryUtils.java:88)
               Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException:
           Error has been observed at the following site(s):
               *__checkpoint ⇢ Handler nextstep.subway.member.ui.MemberController#test() [DispatcherHandler]
           Original Stack Trace:
-                  ...
+                  at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$getConnection$0(ConnectionFactoryUtils.java:88)
+                  at reactor.core.publisher.Mono.lambda$onErrorMap$31(Mono.java:3730)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:94)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
+                  at reactor.core.publisher.Operators.error(Operators.java:198)
+                  at reactor.core.publisher.MonoError.subscribe(MonoError.java:53)
+                  at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onError(MonoIgnoreThen.java:278)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:231)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
+                  at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.onComplete(Operators.java:2058)
+                  at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.onComplete(Operators.java:2058)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondComplete(MonoFlatMap.java:196)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapInner.onComplete(MonoFlatMap.java:268)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:209)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:238)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
+                  at reactor.core.publisher.FluxPeek$PeekSubscriber.onComplete(FluxPeek.java:260)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:209)
+                  at reactor.core.publisher.Operators.complete(Operators.java:137)
+                  at reactor.netty.FutureMono.doSubscribe(FutureMono.java:122)
+                  at reactor.netty.FutureMono$ImmediateFutureMono.subscribe(FutureMono.java:83)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:240)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
+                  at reactor.core.publisher.MonoPeekTerminal$MonoTerminalPeekSubscriber.onComplete(MonoPeekTerminal.java:299)
+                  at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
+                  at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.drain(FluxConcatMap.java:368)
+                  at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onComplete(FluxConcatMap.java:276)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onComplete(FluxPeekFuseable.java:277)
+                  at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2400)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
+                  at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onSubscribe(FluxConcatMap.java:236)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
+                  at reactor.core.publisher.FluxJust.subscribe(FluxJust.java:68)
+                  at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
+                  at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
+                  at reactor.core.publisher.MonoDefer.subscribe(MonoDefer.java:52)
+                  at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
+                  at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
+                  at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
+                  at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
+                  at reactor.core.publisher.FluxMap$MapSubscriber.request(FluxMap.java:164)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.onSubscribe(MonoFlatMap.java:110)
+                  at reactor.core.publisher.FluxMap$MapSubscriber.onSubscribe(FluxMap.java:92)
+                  at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
+                  at reactor.core.publisher.MonoDeferContextual.subscribe(MonoDeferContextual.java:55)
+                  at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
+                  at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
+                  at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
+                  at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onError(FluxPeekFuseable.java:234)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onNext(FluxPeekFuseable.java:205)
+                  at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
+                  at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.set(Operators.java:2194)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onSubscribe(FluxOnErrorResume.java:74)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
+                  at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
+                  at reactor.core.publisher.InternalMonoOperator.subscribe(InternalMonoOperator.java:64)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
+                  at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
+                  at reactor.core.publisher.Operators$MonoSubscriber.complete(Operators.java:1816)
+                  at reactor.core.publisher.MonoFlatMap$FlatMapInner.onNext(MonoFlatMap.java:249)
+                  at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
+                  at reactor.core.publisher.MonoDelayUntil$DelayUntilCoordinator.complete(MonoDelayUntil.java:418)
+                  at reactor.core.publisher.MonoDelayUntil$DelayUntilTrigger.onComplete(MonoDelayUntil.java:531)
+                  at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
+                  at reactor.core.publisher.FluxConcatIterable$ConcatIterableSubscriber.onComplete(FluxConcatIterable.java:121)
+                  at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
+                  at reactor.core.publisher.FluxFlatMap$FlatMapMain.checkTerminated(FluxFlatMap.java:846)
+                  at reactor.core.publisher.FluxFlatMap$FlatMapMain.drainLoop(FluxFlatMap.java:608)
+                  at reactor.core.publisher.FluxFlatMap$FlatMapMain.drain(FluxFlatMap.java:588)
+                  at reactor.core.publisher.FluxFlatMap$FlatMapMain.onComplete(FluxFlatMap.java:465)
+                  at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
+                  at reactor.core.publisher.FluxMapFuseable$MapFuseableSubscriber.onComplete(FluxMapFuseable.java:152)
+                  at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.checkTerminated(FluxWindowPredicate.java:538)
+                  at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drainLoop(FluxWindowPredicate.java:486)
+                  at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drain(FluxWindowPredicate.java:430)
+                  at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.onComplete(FluxWindowPredicate.java:310)
+                  at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
+                  at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onComplete(FluxContextWrite.java:126)
+                  at reactor.core.publisher.FluxCreate$BaseSink.complete(FluxCreate.java:460)
+                  at reactor.core.publisher.FluxCreate$BufferAsyncSink.drain(FluxCreate.java:805)
+                  at reactor.core.publisher.FluxCreate$BufferAsyncSink.complete(FluxCreate.java:753)
+                  at reactor.core.publisher.FluxCreate$SerializedFluxSink.drainLoop(FluxCreate.java:247)
+                  at reactor.core.publisher.FluxCreate$SerializedFluxSink.drain(FluxCreate.java:213)
+                  at reactor.core.publisher.FluxCreate$SerializedFluxSink.complete(FluxCreate.java:204)
+                  at io.r2dbc.postgresql.client.ReactorNettyClient$Conversation.complete(ReactorNettyClient.java:638)
+                  at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.emit(ReactorNettyClient.java:904)
+                  at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:780)
+                  at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:686)
+                  at reactor.core.publisher.FluxHandle$HandleSubscriber.onNext(FluxHandle.java:126)
+                  at reactor.core.publisher.FluxPeekFuseable$PeekConditionalSubscriber.onNext(FluxPeekFuseable.java:854)
+                  at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
+                  at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
+                  at reactor.netty.channel.FluxReceive.drainReceiver(FluxReceive.java:279)
+                  at reactor.netty.channel.FluxReceive.onInboundNext(FluxReceive.java:388)
+                  at reactor.netty.channel.ChannelOperations.onInboundNext(ChannelOperations.java:404)
+                  at reactor.netty.channel.ChannelOperationsHandler.channelRead(ChannelOperationsHandler.java:93)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+                  at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+                  at io.netty.handler.codec.ByteToMessageDecoder.fireChannelRead(ByteToMessageDecoder.java:327)
+                  at io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:299)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+                  at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+                  at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1410)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+                  at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+                  at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:919)
+                  at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:166)
+                  at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:722)
+                  at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:658)
+                  at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:584)
+                  at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:496)
+                  at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
+                  at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+                  at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+                  at java.base/java.lang.Thread.run(Thread.java:829)
+          Caused by: java.lang.IllegalStateException: Already value [org.springframework.r2dbc.connection.ConnectionHolder@33bee026] for key [PostgresqlConnectionFactory{clientFactory=io.r2dbc.postgresql.PostgresqlConnectionFactory$$Lambda$742/0x0000000800656040@34738205, configuration=PostgresqlConnectionConfiguration{applicationName='r2dbc-postgresql', autodetectExtensions='true', compatibilityMode=false, connectTimeout=null, database='subway', extensions=[], fetchSize=io.r2dbc.postgresql.PostgresqlConnectionConfiguration$Builder$$Lambda$688/0x0000000800648840@21bdd054, forceBinary='false', host='127.0.0.1', lockWaitTimeout='null, loopResources='null', options='{}', password='***************', port=5432, preferAttachedBuffers=false, socket=null, statementTimeout=null, tcpKeepAlive=false, tcpNoDelay=true, username='subway'}, extensions=io.r2dbc.postgresql.Extensions@25befc63}] bound to context
+              at org.springframework.transaction.reactive.TransactionSynchronizationManager.bindResource(TransactionSynchronizationManager.java:134)
+              at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$null$1(ConnectionFactoryUtils.java:131)
+              at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onNext(FluxPeekFuseable.java:196)
+              at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
+              at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
+              at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.set(Operators.java:2194)
+              at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onSubscribe(FluxOnErrorResume.java:74)
+              at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
+              at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
+              at reactor.core.publisher.InternalMonoOperator.subscribe(InternalMonoOperator.java:64)
+              at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
+              at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
+              at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
+              at reactor.core.publisher.Operators$MonoSubscriber.complete(Operators.java:1816)
+              at reactor.core.publisher.MonoFlatMap$FlatMapInner.onNext(MonoFlatMap.java:249)
+              at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
+              at reactor.core.publisher.MonoDelayUntil$DelayUntilCoordinator.complete(MonoDelayUntil.java:418)
+              at reactor.core.publisher.MonoDelayUntil$DelayUntilTrigger.onComplete(MonoDelayUntil.java:531)
+              at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
+              at reactor.core.publisher.FluxConcatIterable$ConcatIterableSubscriber.onComplete(FluxConcatIterable.java:121)
+              at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
+              at reactor.core.publisher.FluxFlatMap$FlatMapMain.checkTerminated(FluxFlatMap.java:846)
+              at reactor.core.publisher.FluxFlatMap$FlatMapMain.drainLoop(FluxFlatMap.java:608)
+              at reactor.core.publisher.FluxFlatMap$FlatMapMain.drain(FluxFlatMap.java:588)
+              at reactor.core.publisher.FluxFlatMap$FlatMapMain.onComplete(FluxFlatMap.java:465)
+              at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
+              at reactor.core.publisher.FluxMapFuseable$MapFuseableSubscriber.onComplete(FluxMapFuseable.java:152)
+              at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.checkTerminated(FluxWindowPredicate.java:538)
+              at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drainLoop(FluxWindowPredicate.java:486)
+              at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drain(FluxWindowPredicate.java:430)
+              at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.onComplete(FluxWindowPredicate.java:310)
+              at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
+              at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onComplete(FluxContextWrite.java:126)
+              at reactor.core.publisher.FluxCreate$BaseSink.complete(FluxCreate.java:460)
+              at reactor.core.publisher.FluxCreate$BufferAsyncSink.drain(FluxCreate.java:805)
+              at reactor.core.publisher.FluxCreate$BufferAsyncSink.complete(FluxCreate.java:753)
+              at reactor.core.publisher.FluxCreate$SerializedFluxSink.drainLoop(FluxCreate.java:247)
+              at reactor.core.publisher.FluxCreate$SerializedFluxSink.drain(FluxCreate.java:213)
+              at reactor.core.publisher.FluxCreate$SerializedFluxSink.complete(FluxCreate.java:204)
+              at io.r2dbc.postgresql.client.ReactorNettyClient$Conversation.complete(ReactorNettyClient.java:638)
+              at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.emit(ReactorNettyClient.java:904)
+              at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:780)
+              at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:686)
+              at reactor.core.publisher.FluxHandle$HandleSubscriber.onNext(FluxHandle.java:126)
+              at reactor.core.publisher.FluxPeekFuseable$PeekConditionalSubscriber.onNext(FluxPeekFuseable.java:854)
+              at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
+              at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
+              at reactor.netty.channel.FluxReceive.drainReceiver(FluxReceive.java:279)
+              at reactor.netty.channel.FluxReceive.onInboundNext(FluxReceive.java:388)
+              at reactor.netty.channel.ChannelOperations.onInboundNext(ChannelOperations.java:404)
+              at reactor.netty.channel.ChannelOperationsHandler.channelRead(ChannelOperationsHandler.java:93)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+              at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+              at io.netty.handler.codec.ByteToMessageDecoder.fireChannelRead(ByteToMessageDecoder.java:327)
+              at io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:299)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+              at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
+              at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1410)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
+              at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
+              at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:919)
+              at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:166)
+              at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:722)
+              at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:658)
+              at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:584)
+              at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:496)
+              at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
+              at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
+              at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+              at java.base/java.lang.Thread.run(Thread.java:829)
           ```
-  
-        </details>
-
-      - 또한 트랜잭션 내에서 publisher 를 결합(Mono.zip, mono.zipWith, mono.zipWhen, Mono.when ...)할 때 SQL 을 2회 이상 실행하면 예외가 발생한다.
-        - 동일한 스레드에서 순서대로 실행되는 것 같은데 왜?
-          - SQL 이 실행될 때 마다 새로운 커넥션으로 연결하는 것 같다. 2번째 SQL 이 실행될 때 `TransactionSynchronizationManager` `ConnectionHolder` 에 이미 이전 커넥션이 있어서 예외가 발생한다.
-        - 순차적으로 실행하면(첫 번째 반환 값을 flatMap 으로 변형할 때 두 번째 반환 값과 함께 Tuple 로 반환) 동일한 커넥션에서 실행되는지 예외가 발생하지 않는다.
-        <details>
-        <summary>접기/펼치기</summary>
-
-        ```java
-        // 예외 발생함
-        public Flux<Line> test() {
-            return lineRepository.findAll()
-                    .collectList()
-                    .zipWith(sectionRepository.findAll())
-                    //...
-                    .flatMapMany(Flux::fromStream);
-        }
-        
-        // 예외 발생하지 않음
-        public Flux<Line> test() {
-            return lineRepository.findAll()
-                    .collectList()
-                    .flatMap(lines -> sectionRepository.findAll()
-                            .flatMap(sections -> Mono.just(Tuples.of(lines, sections))))
-                    //...
-                    .flatMapMany(Flux::fromStream);
-        }
-        ```
-
-        ```
-        org.springframework.dao.DataAccessResourceFailureException: Failed to obtain R2DBC Connection; nested exception is java.lang.IllegalStateException: Already value [org.springframework.r2dbc.connection.ConnectionHolder@33bee026] for key [PostgresqlConnectionFactory{clientFactory=io.r2dbc.postgresql.PostgresqlConnectionFactory$$Lambda$742/0x0000000800656040@34738205, configuration=PostgresqlConnectionConfiguration{applicationName='r2dbc-postgresql', autodetectExtensions='true', compatibilityMode=false, connectTimeout=null, database='subway', extensions=[], fetchSize=io.r2dbc.postgresql.PostgresqlConnectionConfiguration$Builder$$Lambda$688/0x0000000800648840@21bdd054, forceBinary='false', host='127.0.0.1', lockWaitTimeout='null, loopResources='null', options='{}', password='***************', port=5432, preferAttachedBuffers=false, socket=null, statementTimeout=null, tcpKeepAlive=false, tcpNoDelay=true, username='subway'}, extensions=io.r2dbc.postgresql.Extensions@25befc63}] bound to context
-            at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$getConnection$0(ConnectionFactoryUtils.java:88)
-            Suppressed: reactor.core.publisher.FluxOnAssembly$OnAssemblyException:
-        Error has been observed at the following site(s):
-            *__checkpoint ⇢ Handler nextstep.subway.member.ui.MemberController#test() [DispatcherHandler]
-        Original Stack Trace:
-                at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$getConnection$0(ConnectionFactoryUtils.java:88)
-                at reactor.core.publisher.Mono.lambda$onErrorMap$31(Mono.java:3730)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:94)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
-                at reactor.core.publisher.Operators.error(Operators.java:198)
-                at reactor.core.publisher.MonoError.subscribe(MonoError.java:53)
-                at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192)
-                at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondError(MonoFlatMap.java:192)
-                at reactor.core.publisher.MonoFlatMap$FlatMapInner.onError(MonoFlatMap.java:259)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:106)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onError(MonoIgnoreThen.java:278)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:231)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
-                at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.onComplete(Operators.java:2058)
-                at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.onComplete(Operators.java:2058)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.secondComplete(MonoFlatMap.java:196)
-                at reactor.core.publisher.MonoFlatMap$FlatMapInner.onComplete(MonoFlatMap.java:268)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:209)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:238)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
-                at reactor.core.publisher.FluxPeek$PeekSubscriber.onComplete(FluxPeek.java:260)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:209)
-                at reactor.core.publisher.Operators.complete(Operators.java:137)
-                at reactor.netty.FutureMono.doSubscribe(FutureMono.java:122)
-                at reactor.netty.FutureMono$ImmediateFutureMono.subscribe(FutureMono.java:83)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:240)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.onComplete(MonoIgnoreThen.java:203)
-                at reactor.core.publisher.MonoPeekTerminal$MonoTerminalPeekSubscriber.onComplete(MonoPeekTerminal.java:299)
-                at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
-                at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.drain(FluxConcatMap.java:368)
-                at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onComplete(FluxConcatMap.java:276)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onComplete(FluxPeekFuseable.java:277)
-                at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2400)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
-                at reactor.core.publisher.FluxConcatMap$ConcatMapImmediate.onSubscribe(FluxConcatMap.java:236)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
-                at reactor.core.publisher.FluxJust.subscribe(FluxJust.java:68)
-                at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
-                at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
-                at reactor.core.publisher.MonoDefer.subscribe(MonoDefer.java:52)
-                at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
-                at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
-                at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
-                at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
-                at reactor.core.publisher.FluxMap$MapSubscriber.request(FluxMap.java:164)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.onSubscribe(MonoFlatMap.java:110)
-                at reactor.core.publisher.FluxMap$MapSubscriber.onSubscribe(FluxMap.java:92)
-                at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
-                at reactor.core.publisher.MonoDeferContextual.subscribe(MonoDeferContextual.java:55)
-                at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
-                at reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain.subscribeNext(MonoIgnoreThen.java:263)
-                at reactor.core.publisher.MonoIgnoreThen.subscribe(MonoIgnoreThen.java:51)
-                at reactor.core.publisher.Mono.subscribe(Mono.java:4397)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onError(FluxOnErrorResume.java:103)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onError(FluxPeekFuseable.java:234)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onNext(FluxPeekFuseable.java:205)
-                at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
-                at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.set(Operators.java:2194)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onSubscribe(FluxOnErrorResume.java:74)
-                at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
-                at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
-                at reactor.core.publisher.InternalMonoOperator.subscribe(InternalMonoOperator.java:64)
-                at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
-                at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
-                at reactor.core.publisher.Operators$MonoSubscriber.complete(Operators.java:1816)
-                at reactor.core.publisher.MonoFlatMap$FlatMapInner.onNext(MonoFlatMap.java:249)
-                at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
-                at reactor.core.publisher.MonoDelayUntil$DelayUntilCoordinator.complete(MonoDelayUntil.java:418)
-                at reactor.core.publisher.MonoDelayUntil$DelayUntilTrigger.onComplete(MonoDelayUntil.java:531)
-                at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
-                at reactor.core.publisher.FluxConcatIterable$ConcatIterableSubscriber.onComplete(FluxConcatIterable.java:121)
-                at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
-                at reactor.core.publisher.FluxFlatMap$FlatMapMain.checkTerminated(FluxFlatMap.java:846)
-                at reactor.core.publisher.FluxFlatMap$FlatMapMain.drainLoop(FluxFlatMap.java:608)
-                at reactor.core.publisher.FluxFlatMap$FlatMapMain.drain(FluxFlatMap.java:588)
-                at reactor.core.publisher.FluxFlatMap$FlatMapMain.onComplete(FluxFlatMap.java:465)
-                at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
-                at reactor.core.publisher.FluxMapFuseable$MapFuseableSubscriber.onComplete(FluxMapFuseable.java:152)
-                at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.checkTerminated(FluxWindowPredicate.java:538)
-                at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drainLoop(FluxWindowPredicate.java:486)
-                at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drain(FluxWindowPredicate.java:430)
-                at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.onComplete(FluxWindowPredicate.java:310)
-                at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
-                at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onComplete(FluxContextWrite.java:126)
-                at reactor.core.publisher.FluxCreate$BaseSink.complete(FluxCreate.java:460)
-                at reactor.core.publisher.FluxCreate$BufferAsyncSink.drain(FluxCreate.java:805)
-                at reactor.core.publisher.FluxCreate$BufferAsyncSink.complete(FluxCreate.java:753)
-                at reactor.core.publisher.FluxCreate$SerializedFluxSink.drainLoop(FluxCreate.java:247)
-                at reactor.core.publisher.FluxCreate$SerializedFluxSink.drain(FluxCreate.java:213)
-                at reactor.core.publisher.FluxCreate$SerializedFluxSink.complete(FluxCreate.java:204)
-                at io.r2dbc.postgresql.client.ReactorNettyClient$Conversation.complete(ReactorNettyClient.java:638)
-                at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.emit(ReactorNettyClient.java:904)
-                at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:780)
-                at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:686)
-                at reactor.core.publisher.FluxHandle$HandleSubscriber.onNext(FluxHandle.java:126)
-                at reactor.core.publisher.FluxPeekFuseable$PeekConditionalSubscriber.onNext(FluxPeekFuseable.java:854)
-                at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
-                at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
-                at reactor.netty.channel.FluxReceive.drainReceiver(FluxReceive.java:279)
-                at reactor.netty.channel.FluxReceive.onInboundNext(FluxReceive.java:388)
-                at reactor.netty.channel.ChannelOperations.onInboundNext(ChannelOperations.java:404)
-                at reactor.netty.channel.ChannelOperationsHandler.channelRead(ChannelOperationsHandler.java:93)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-                at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
-                at io.netty.handler.codec.ByteToMessageDecoder.fireChannelRead(ByteToMessageDecoder.java:327)
-                at io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:299)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-                at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
-                at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1410)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-                at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-                at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:919)
-                at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:166)
-                at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:722)
-                at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:658)
-                at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:584)
-                at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:496)
-                at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
-                at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
-                at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
-                at java.base/java.lang.Thread.run(Thread.java:829)
-        Caused by: java.lang.IllegalStateException: Already value [org.springframework.r2dbc.connection.ConnectionHolder@33bee026] for key [PostgresqlConnectionFactory{clientFactory=io.r2dbc.postgresql.PostgresqlConnectionFactory$$Lambda$742/0x0000000800656040@34738205, configuration=PostgresqlConnectionConfiguration{applicationName='r2dbc-postgresql', autodetectExtensions='true', compatibilityMode=false, connectTimeout=null, database='subway', extensions=[], fetchSize=io.r2dbc.postgresql.PostgresqlConnectionConfiguration$Builder$$Lambda$688/0x0000000800648840@21bdd054, forceBinary='false', host='127.0.0.1', lockWaitTimeout='null, loopResources='null', options='{}', password='***************', port=5432, preferAttachedBuffers=false, socket=null, statementTimeout=null, tcpKeepAlive=false, tcpNoDelay=true, username='subway'}, extensions=io.r2dbc.postgresql.Extensions@25befc63}] bound to context
-            at org.springframework.transaction.reactive.TransactionSynchronizationManager.bindResource(TransactionSynchronizationManager.java:134)
-            at org.springframework.r2dbc.connection.ConnectionFactoryUtils.lambda$null$1(ConnectionFactoryUtils.java:131)
-            at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onNext(FluxPeekFuseable.java:196)
-            at reactor.core.publisher.Operators$ScalarSubscription.request(Operators.java:2398)
-            at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.request(FluxPeekFuseable.java:144)
-            at reactor.core.publisher.Operators$MultiSubscriptionSubscriber.set(Operators.java:2194)
-            at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onSubscribe(FluxOnErrorResume.java:74)
-            at reactor.core.publisher.FluxPeekFuseable$PeekFuseableSubscriber.onSubscribe(FluxPeekFuseable.java:178)
-            at reactor.core.publisher.MonoJust.subscribe(MonoJust.java:55)
-            at reactor.core.publisher.InternalMonoOperator.subscribe(InternalMonoOperator.java:64)
-            at reactor.core.publisher.MonoFlatMap$FlatMapMain.onNext(MonoFlatMap.java:157)
-            at reactor.core.publisher.FluxMap$MapSubscriber.onNext(FluxMap.java:122)
-            at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
-            at reactor.core.publisher.Operators$MonoSubscriber.complete(Operators.java:1816)
-            at reactor.core.publisher.MonoFlatMap$FlatMapInner.onNext(MonoFlatMap.java:249)
-            at reactor.core.publisher.FluxOnErrorResume$ResumeSubscriber.onNext(FluxOnErrorResume.java:79)
-            at reactor.core.publisher.MonoDelayUntil$DelayUntilCoordinator.complete(MonoDelayUntil.java:418)
-            at reactor.core.publisher.MonoDelayUntil$DelayUntilTrigger.onComplete(MonoDelayUntil.java:531)
-            at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
-            at reactor.core.publisher.FluxConcatIterable$ConcatIterableSubscriber.onComplete(FluxConcatIterable.java:121)
-            at reactor.core.publisher.MonoIgnoreElements$IgnoreElementsSubscriber.onComplete(MonoIgnoreElements.java:89)
-            at reactor.core.publisher.FluxFlatMap$FlatMapMain.checkTerminated(FluxFlatMap.java:846)
-            at reactor.core.publisher.FluxFlatMap$FlatMapMain.drainLoop(FluxFlatMap.java:608)
-            at reactor.core.publisher.FluxFlatMap$FlatMapMain.drain(FluxFlatMap.java:588)
-            at reactor.core.publisher.FluxFlatMap$FlatMapMain.onComplete(FluxFlatMap.java:465)
-            at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
-            at reactor.core.publisher.FluxMapFuseable$MapFuseableSubscriber.onComplete(FluxMapFuseable.java:152)
-            at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.checkTerminated(FluxWindowPredicate.java:538)
-            at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drainLoop(FluxWindowPredicate.java:486)
-            at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.drain(FluxWindowPredicate.java:430)
-            at reactor.core.publisher.FluxWindowPredicate$WindowPredicateMain.onComplete(FluxWindowPredicate.java:310)
-            at io.r2dbc.postgresql.util.FluxDiscardOnCancel$FluxDiscardOnCancelSubscriber.onComplete(FluxDiscardOnCancel.java:99)
-            at reactor.core.publisher.FluxContextWrite$ContextWriteSubscriber.onComplete(FluxContextWrite.java:126)
-            at reactor.core.publisher.FluxCreate$BaseSink.complete(FluxCreate.java:460)
-            at reactor.core.publisher.FluxCreate$BufferAsyncSink.drain(FluxCreate.java:805)
-            at reactor.core.publisher.FluxCreate$BufferAsyncSink.complete(FluxCreate.java:753)
-            at reactor.core.publisher.FluxCreate$SerializedFluxSink.drainLoop(FluxCreate.java:247)
-            at reactor.core.publisher.FluxCreate$SerializedFluxSink.drain(FluxCreate.java:213)
-            at reactor.core.publisher.FluxCreate$SerializedFluxSink.complete(FluxCreate.java:204)
-            at io.r2dbc.postgresql.client.ReactorNettyClient$Conversation.complete(ReactorNettyClient.java:638)
-            at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.emit(ReactorNettyClient.java:904)
-            at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:780)
-            at io.r2dbc.postgresql.client.ReactorNettyClient$BackendMessageSubscriber.onNext(ReactorNettyClient.java:686)
-            at reactor.core.publisher.FluxHandle$HandleSubscriber.onNext(FluxHandle.java:126)
-            at reactor.core.publisher.FluxPeekFuseable$PeekConditionalSubscriber.onNext(FluxPeekFuseable.java:854)
-            at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
-            at reactor.core.publisher.FluxMap$MapConditionalSubscriber.onNext(FluxMap.java:224)
-            at reactor.netty.channel.FluxReceive.drainReceiver(FluxReceive.java:279)
-            at reactor.netty.channel.FluxReceive.onInboundNext(FluxReceive.java:388)
-            at reactor.netty.channel.ChannelOperations.onInboundNext(ChannelOperations.java:404)
-            at reactor.netty.channel.ChannelOperationsHandler.channelRead(ChannelOperationsHandler.java:93)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-            at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
-            at io.netty.handler.codec.ByteToMessageDecoder.fireChannelRead(ByteToMessageDecoder.java:327)
-            at io.netty.handler.codec.ByteToMessageDecoder.channelRead(ByteToMessageDecoder.java:299)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-            at io.netty.channel.AbstractChannelHandlerContext.fireChannelRead(AbstractChannelHandlerContext.java:357)
-            at io.netty.channel.DefaultChannelPipeline$HeadContext.channelRead(DefaultChannelPipeline.java:1410)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:379)
-            at io.netty.channel.AbstractChannelHandlerContext.invokeChannelRead(AbstractChannelHandlerContext.java:365)
-            at io.netty.channel.DefaultChannelPipeline.fireChannelRead(DefaultChannelPipeline.java:919)
-            at io.netty.channel.nio.AbstractNioByteChannel$NioByteUnsafe.read(AbstractNioByteChannel.java:166)
-            at io.netty.channel.nio.NioEventLoop.processSelectedKey(NioEventLoop.java:722)
-            at io.netty.channel.nio.NioEventLoop.processSelectedKeysOptimized(NioEventLoop.java:658)
-            at io.netty.channel.nio.NioEventLoop.processSelectedKeys(NioEventLoop.java:584)
-            at io.netty.channel.nio.NioEventLoop.run(NioEventLoop.java:496)
-            at io.netty.util.concurrent.SingleThreadEventExecutor$4.run(SingleThreadEventExecutor.java:997)
-            at io.netty.util.internal.ThreadExecutorMap$2.run(ThreadExecutorMap.java:74)
-            at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
-            at java.base/java.lang.Thread.run(Thread.java:829)
-        ```
-        
-        </details>
+          
+          </details>

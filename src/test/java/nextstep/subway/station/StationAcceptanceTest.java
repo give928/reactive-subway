@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("지하철역 관련 기능")
-public class StationAcceptanceTest extends AcceptanceTest {
+class StationAcceptanceTest extends AcceptanceTest {
     private static final String 강남역 = "강남역";
     private static final String 역삼역 = "역삼역";
 
@@ -64,7 +64,8 @@ public class StationAcceptanceTest extends AcceptanceTest {
         ResponseEntity<StationResponse> createResponse = 지하철역_등록되어_있음(강남역);
 
         // when
-        Mono<ResponseEntity<Void>> response = 지하철역_제거_요청(createResponse);
+        Mono<ResponseEntity<Void>> response = 지하철역_제거_요청(
+                Objects.requireNonNull(createResponse.getHeaders().getLocation()).getPath());
 
         // then
         지하철역_삭제됨(response);
@@ -77,9 +78,7 @@ public class StationAcceptanceTest extends AcceptanceTest {
                 .exchangeToMono(clientResponse -> clientResponse.toEntityList(StationResponse.class));
     }
 
-    public Mono<ResponseEntity<Void>> 지하철역_제거_요청(ResponseEntity<StationResponse> response) {
-        String uri = response.getHeaders().getLocation().getPath();
-
+    public Mono<ResponseEntity<Void>> 지하철역_제거_요청(String uri) {
         return webClient().delete()
                 .uri(uri)
                 .exchangeToMono(clientResponse -> clientResponse.toEntity(Void.class));

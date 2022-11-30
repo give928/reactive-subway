@@ -1,8 +1,5 @@
 package nextstep.subway.line.acceptance;
 
-import io.restassured.RestAssured;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
 import nextstep.subway.line.dto.LineResponse;
 import nextstep.subway.station.dto.StationResponse;
@@ -10,12 +7,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,17 +41,17 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
         lineCreateParams.put("upStationId", 강남역.getId() + "");
         lineCreateParams.put("downStationId", 광교역.getId() + "");
         lineCreateParams.put("distance", 10 + "");
-        신분당선 = LineAcceptanceTest.지하철_노선_등록되어_있음(lineCreateParams).as(LineResponse.class);
+        신분당선 = 지하철_노선_등록되어_있음(lineCreateParams).getBody();
     }
 
     @DisplayName("지하철 노선에 역을 등록한다.")
     @Test
     void addLineSection() {
         // when
-        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 3);
+        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 3).block();
 
         // then
-        ExtractableResponse<Response> response = LineAcceptanceTest.지하철_노선_조회_요청(신분당선);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_조회_요청(신분당선);
         지하철_노선에_지하철역_등록됨(response);
         지하철_노선에_지하철역_순서_정렬됨(response, Arrays.asList(강남역, 양재역, 광교역));
     }
@@ -63,11 +60,11 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
     @Test
     void addLineSection2() {
         // when
-        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 2);
-        지하철_노선에_지하철역_등록_요청(신분당선, 정자역, 강남역, 5);
+        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 2).block();
+        지하철_노선에_지하철역_등록_요청(신분당선, 정자역, 강남역, 5).block();
 
         // then
-        ExtractableResponse<Response> response = LineAcceptanceTest.지하철_노선_조회_요청(신분당선);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_조회_요청(신분당선);
         지하철_노선에_지하철역_등록됨(response);
         지하철_노선에_지하철역_순서_정렬됨(response, Arrays.asList(정자역, 강남역, 양재역, 광교역));
     }
@@ -76,7 +73,7 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
     @Test
     void addLineSectionWithSameStation() {
         // when
-        ExtractableResponse<Response> response = 지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 광교역, 3);
+        Mono<ResponseEntity<Void>> response = 지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 광교역, 3);
 
         // then
         지하철_노선에_지하철역_등록_실패됨(response);
@@ -86,7 +83,7 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
     @Test
     void addLineSectionWithNoStation() {
         // when
-        ExtractableResponse<Response> response = 지하철_노선에_지하철역_등록_요청(신분당선, 정자역, 양재역, 3);
+        Mono<ResponseEntity<Void>> response = 지하철_노선에_지하철역_등록_요청(신분당선, 정자역, 양재역, 3);
 
         // then
         지하철_노선에_지하철역_등록_실패됨(response);
@@ -96,15 +93,15 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
     @Test
     void removeLineSection1() {
         // given
-        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 2);
-        지하철_노선에_지하철역_등록_요청(신분당선, 양재역, 정자역, 2);
+        지하철_노선에_지하철역_등록_요청(신분당선, 강남역, 양재역, 2).block();
+        지하철_노선에_지하철역_등록_요청(신분당선, 양재역, 정자역, 2).block();
 
         // when
-        ExtractableResponse<Response> removeResponse = 지하철_노선에_지하철역_제외_요청(신분당선, 양재역);
+        Mono<ResponseEntity<Void>> removeResponse = 지하철_노선에_지하철역_제외_요청(신분당선, 양재역);
 
         // then
         지하철_노선에_지하철역_제외됨(removeResponse);
-        ExtractableResponse<Response> response = LineAcceptanceTest.지하철_노선_조회_요청(신분당선);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_조회_요청(신분당선);
         지하철_노선에_지하철역_순서_정렬됨(response, Arrays.asList(강남역, 정자역, 광교역));
     }
 
@@ -112,63 +109,63 @@ public class LineSectionAcceptanceTest extends AcceptanceTest {
     @Test
     void removeLineSection2() {
         // when
-        ExtractableResponse<Response> removeResponse = 지하철_노선에_지하철역_제외_요청(신분당선, 강남역);
+        Mono<ResponseEntity<Void>> removeResponse = 지하철_노선에_지하철역_제외_요청(신분당선, 강남역);
 
         // then
         지하철_노선에_지하철역_제외_실패됨(removeResponse);
     }
 
-    public static ExtractableResponse<Response> 지하철_노선에_지하철역_등록_요청(LineResponse line, StationResponse upStation, StationResponse downStation, int distance) {
-        Map<String, String> params = new HashMap<>();
-        params.put("upStationId", upStation.getId() + "");
-        params.put("downStationId", downStation.getId() + "");
-        params.put("distance", distance + "");
-
-        return RestAssured.given().log().all().
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                post("/lines/{lineId}/sections", line.getId()).
-                then().
-                log().all().
-                extract();
+    public static void 지하철_노선에_지하철역_등록됨(Mono<ResponseEntity<LineResponse>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선에_지하철역_등록됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+    public static void 지하철_노선에_지하철역_등록_실패됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선에_지하철역_등록_실패됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-    }
-
-    public static void 지하철_노선에_지하철역_순서_정렬됨(ExtractableResponse<Response> response, List<StationResponse> expectedStations) {
-        LineResponse line = response.as(LineResponse.class);
-        List<Long> stationIds = line.getStations().stream()
-                .map(it -> it.getId())
-                .collect(Collectors.toList());
-
+    public static void 지하철_노선에_지하철역_순서_정렬됨(Mono<ResponseEntity<LineResponse>> response, List<StationResponse> expectedStations) {
         List<Long> expectedStationIds = expectedStations.stream()
-                .map(it -> it.getId())
+                .map(StationResponse::getId)
                 .collect(Collectors.toList());
 
-        assertThat(stationIds).containsExactlyElementsOf(expectedStationIds);
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    List<Long> stationIds = Objects.requireNonNull(r.getBody()).getStations().stream()
+                            .map(StationResponse::getId)
+                            .collect(Collectors.toList());
+
+                    assertThat(stationIds).containsExactlyElementsOf(expectedStationIds);
+                })
+                .verifyComplete();
     }
 
-    public static ExtractableResponse<Response> 지하철_노선에_지하철역_제외_요청(LineResponse line, StationResponse station) {
-        return RestAssured.given().log().all().
-                when().
-                delete("/lines/{lineId}/sections?stationId={stationId}", line.getId(), station.getId()).
-                then().
-                log().all().
-                extract();
+    public Mono<ResponseEntity<Void>> 지하철_노선에_지하철역_제외_요청(LineResponse line, StationResponse station) {
+        return webClient().delete()
+                .uri("/lines/{lineId}/sections?stationId={stationId}", line.getId(), station.getId())
+                .exchangeToMono(ClientResponse::toBodilessEntity);
     }
 
-    public static void 지하철_노선에_지하철역_제외됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+    public static void 지하철_노선에_지하철역_제외됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선에_지하철역_제외_실패됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+    public static void 지하철_노선에_지하철역_제외_실패됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                })
+                .verifyComplete();
     }
 }

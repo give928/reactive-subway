@@ -1,8 +1,5 @@
 package nextstep.subway.line.acceptance;
 
-import io.restassured.RestAssured;
-import io.restassured.response.ExtractableResponse;
-import io.restassured.response.Response;
 import nextstep.subway.AcceptanceTest;
 import nextstep.subway.line.dto.LineResponse;
 import nextstep.subway.station.dto.StationResponse;
@@ -11,11 +8,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +45,7 @@ public class LineAcceptanceTest extends AcceptanceTest {
     @Test
     void createLine() {
         // when
-        ExtractableResponse<Response> response = 지하철_노선_생성_요청(lineCreateParams);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_생성_요청(lineCreateParams);
 
         // then
         지하철_노선_생성됨(response);
@@ -59,7 +58,7 @@ public class LineAcceptanceTest extends AcceptanceTest {
         지하철_노선_등록되어_있음(lineCreateParams);
 
         // when
-        ExtractableResponse<Response> response = 지하철_노선_생성_요청(lineCreateParams);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_생성_요청(lineCreateParams);
 
         // then
         지하철_노선_생성_실패됨(response);
@@ -75,11 +74,11 @@ public class LineAcceptanceTest extends AcceptanceTest {
         params.put("upStationId", 강남역.getId() + "");
         params.put("downStationId", 광교역.getId() + "");
         params.put("distance", 15 + "");
-        ExtractableResponse<Response> createResponse1 = 지하철_노선_등록되어_있음(params);
-        ExtractableResponse<Response> createResponse2 = 지하철_노선_등록되어_있음(lineCreateParams);
+        ResponseEntity<LineResponse> createResponse1 = 지하철_노선_등록되어_있음(params);
+        ResponseEntity<LineResponse> createResponse2 = 지하철_노선_등록되어_있음(lineCreateParams);
 
         // when
-        ExtractableResponse<Response> response = 지하철_노선_목록_조회_요청();
+        Mono<ResponseEntity<List<LineResponse>>> response = 지하철_노선_목록_조회_요청();
 
         // then
         지하철_노선_목록_응답됨(response);
@@ -90,10 +89,10 @@ public class LineAcceptanceTest extends AcceptanceTest {
     @Test
     void getLine() {
         // given
-        ExtractableResponse<Response> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
+        ResponseEntity<LineResponse> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
 
         // when
-        ExtractableResponse<Response> response = 지하철_노선_조회_요청(createResponse);
+        Mono<ResponseEntity<LineResponse>> response = 지하철_노선_조회_요청(createResponse);
 
         // then
         지하철_노선_응답됨(response, createResponse);
@@ -104,7 +103,7 @@ public class LineAcceptanceTest extends AcceptanceTest {
     void updateLine() {
         // given
         String name = "신분당선";
-        ExtractableResponse<Response> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
+        ResponseEntity<LineResponse> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
 
         // when
         Map<String, String> params = new HashMap<>();
@@ -113,7 +112,7 @@ public class LineAcceptanceTest extends AcceptanceTest {
         params.put("upStationId", 강남역.getId() + "");
         params.put("downStationId", 광교역.getId() + "");
         params.put("distance", 15 + "");
-        ExtractableResponse<Response> response = 지하철_노선_수정_요청(createResponse, params);
+        Mono<ResponseEntity<Void>> response = 지하철_노선_수정_요청(createResponse, params);
 
         // then
         지하철_노선_수정됨(response);
@@ -123,121 +122,108 @@ public class LineAcceptanceTest extends AcceptanceTest {
     @Test
     void deleteLine() {
         // given
-        ExtractableResponse<Response> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
+        ResponseEntity<LineResponse> createResponse = 지하철_노선_등록되어_있음(lineCreateParams);
 
         // when
-        ExtractableResponse<Response> response = 지하철_노선_제거_요청(createResponse);
+        Mono<ResponseEntity<Void>> response = 지하철_노선_제거_요청(createResponse);
 
         // then
         지하철_노선_삭제됨(response);
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_등록되어_있음(Map<String, String> params) {
-        return 지하철_노선_생성_요청(params);
+    public Mono<ResponseEntity<List<LineResponse>>> 지하철_노선_목록_조회_요청() {
+        return webClient().get()
+                .uri("/lines")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchangeToMono(clientResponse -> clientResponse.toEntityList(LineResponse.class));
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_생성_요청(Map<String, String> params) {
-        return RestAssured.given().log().all().
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                post("/lines").
-                then().
-                log().all().
-                extract();
+    public Mono<ResponseEntity<Void>> 지하철_노선_수정_요청(ResponseEntity<LineResponse> response,
+                                                             Map<String, String> params) {
+        String uri = response.getHeaders().getFirst("Location");
+        assert uri != null;
+
+        return webClient().put()
+                .uri(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(params))
+                .exchangeToMono(ClientResponse::toBodilessEntity);
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_목록_조회_요청() {
-        return RestAssured.given().log().all().
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get("/lines").
-                then().
-                log().all().
-                extract();
+    public Mono<ResponseEntity<Void>> 지하철_노선_제거_요청(ResponseEntity<LineResponse> response) {
+        String uri = response.getHeaders().getFirst("Location");
+        assert uri != null;
+
+        return webClient().delete()
+                .uri(uri)
+                .exchangeToMono(ClientResponse::toBodilessEntity);
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_조회_요청(LineResponse response) {
-        return RestAssured.given().log().all().
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get("/lines/{lineId}", response.getId()).
-                then().
-                log().all().
-                extract();
+    public static void 지하철_노선_생성됨(Mono<ResponseEntity<LineResponse>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+                    assertThat(r.getHeaders().getFirst("Location")).isNotBlank();
+                })
+                .verifyComplete();
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_조회_요청(ExtractableResponse<Response> response) {
-        String uri = response.header("Location");
-
-        return RestAssured.given().log().all().
-                accept(MediaType.APPLICATION_JSON_VALUE).
-                when().
-                get(uri).
-                then().
-                log().all().
-                extract();
+    public static void 지하철_노선_생성_실패됨(Mono<ResponseEntity<LineResponse>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                })
+                .verifyComplete();
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_수정_요청(ExtractableResponse<Response> response, Map<String, String> params) {
-        String uri = response.header("Location");
-
-        return RestAssured.given().log().all().
-                contentType(MediaType.APPLICATION_JSON_VALUE).
-                body(params).
-                when().
-                put(uri).
-                then().
-                log().all().
-                extract();
+    public static void 지하철_노선_목록_응답됨(Mono<ResponseEntity<List<LineResponse>>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .verifyComplete();
     }
 
-    public static ExtractableResponse<Response> 지하철_노선_제거_요청(ExtractableResponse<Response> response) {
-        String uri = response.header("Location");
-
-        return RestAssured.given().log().all().
-                when().
-                delete(uri).
-                then().
-                log().all().
-                extract();
+    public static void 지하철_노선_응답됨(Mono<ResponseEntity<LineResponse>> response,
+                                  ResponseEntity<LineResponse> createdResponse) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(r.getBody()).isNotNull();
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선_생성됨(ExtractableResponse response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.CREATED.value());
-        assertThat(response.header("Location")).isNotBlank();
-    }
-
-    public static void 지하철_노선_생성_실패됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-    }
-
-    public static void 지하철_노선_목록_응답됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
-    }
-
-    public static void 지하철_노선_응답됨(ExtractableResponse<Response> response, ExtractableResponse<Response> createdResponse) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
-        assertThat(response.as(LineResponse.class)).isNotNull();
-    }
-
-    public static void 지하철_노선_목록_포함됨(ExtractableResponse<Response> response, List<ExtractableResponse<Response>> createdResponses) {
+    public static void 지하철_노선_목록_포함됨(Mono<ResponseEntity<List<LineResponse>>> response,
+                                     List<ResponseEntity<LineResponse>> createdResponses) {
         List<Long> expectedLineIds = createdResponses.stream()
-                .map(it -> Long.parseLong(it.header("Location").split("/")[2]))
+                .map(it -> Long.parseLong(Objects.requireNonNull(it.getHeaders().getFirst("Location")).split("/")[2]))
                 .collect(Collectors.toList());
 
-        List<Long> resultLineIds = response.jsonPath().getList(".", LineResponse.class).stream()
-                .map(LineResponse::getId)
-                .collect(Collectors.toList());
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    List<Long> resultLineIds = Objects.requireNonNull(r.getBody()).stream()
+                            .map(LineResponse::getId)
+                            .collect(Collectors.toList());
 
-        assertThat(resultLineIds).containsAll(expectedLineIds);
+                    assertThat(resultLineIds).containsAll(expectedLineIds);
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선_수정됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value());
+    public static void 지하철_노선_수정됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);
+                })
+                .verifyComplete();
     }
 
-    public static void 지하철_노선_삭제됨(ExtractableResponse<Response> response) {
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.NO_CONTENT.value());
+    public static void 지하철_노선_삭제됨(Mono<ResponseEntity<Void>> response) {
+        StepVerifier.create(response)
+                .assertNext(r -> {
+                    assertThat(r.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+                })
+                .verifyComplete();
     }
 }
