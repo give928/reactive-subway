@@ -1,6 +1,6 @@
 package nextstep.subway.map.application;
 
-import nextstep.subway.common.annotation.Loggable;
+import nextstep.subway.common.log.annotation.Loggable;
 import nextstep.subway.line.application.LineService;
 import nextstep.subway.map.dto.PathResponse;
 import nextstep.subway.map.dto.PathResponseAssembler;
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 @Service
-@Transactional(readOnly = true, transactionManager = "readTransactionManager")
+@Transactional(readOnly = true)
 public class MapService {
     private final LineService lineService;
     private final StationService stationService;

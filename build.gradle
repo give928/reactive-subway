@@ -23,6 +23,16 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+	// r2dbc mysql
+//    implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
+//    implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.1.7'
+
+	// r2dbc postgres
+	implementation 'io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE'
+
+	// redis reactive
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+
 	// log
 	implementation 'net.logstash.logback:logstash-logback-encoder:7.1.1'
 
@@ -40,13 +50,6 @@ dependencies {
 	implementation 'org.postgresql:postgresql:42.5.1'
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
-	// r2dbc mysql
-//    implementation 'dev.miku:r2dbc-mysql:0.8.2.RELEASE'
-//    implementation 'com.github.jasync-sql:jasync-r2dbc-mysql:2.1.7'
-
-	// r2dbc postgres
-	implementation 'io.r2dbc:r2dbc-postgresql:0.8.13.RELEASE'
-
 	// lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
@@ -60,6 +63,9 @@ dependencies {
 	implementation 'io.projectreactor.tools:blockhound:1.0.6.RELEASE'
 	testImplementation 'io.projectreactor:reactor-test'
 	testImplementation 'io.projectreactor.tools:blockhound-junit-platform:1.0.6.RELEASE'
+
+	// embedded redis
+	testImplementation 'it.ozimov:embedded-redis:0.7.2'
 
 	// r2dbc h2
 	testRuntimeOnly 'io.r2dbc:r2dbc-h2'

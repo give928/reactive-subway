@@ -5,14 +5,14 @@ import nextstep.subway.auth.domain.LoginMember;
 import nextstep.subway.auth.dto.TokenRequest;
 import nextstep.subway.auth.dto.TokenResponse;
 import nextstep.subway.auth.infrastructure.JwtTokenProvider;
-import nextstep.subway.common.annotation.Loggable;
+import nextstep.subway.common.log.annotation.Loggable;
 import nextstep.subway.member.domain.MemberRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 @Service
-@Transactional(readOnly = true, transactionManager = "readTransactionManager")
+@Transactional(readOnly = true)
 @Slf4j
 public class AuthService {
     private final MemberRepository memberRepository;

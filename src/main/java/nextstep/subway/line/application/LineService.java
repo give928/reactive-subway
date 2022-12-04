@@ -1,12 +1,14 @@
 package nextstep.subway.line.application;
 
+import nextstep.subway.common.cache.annotation.ReactiveCacheEvict;
+import nextstep.subway.common.cache.annotation.ReactiveCacheable;
 import nextstep.subway.line.domain.Line;
 import nextstep.subway.line.domain.LineRepository;
 import nextstep.subway.line.domain.Section;
 import nextstep.subway.line.domain.SectionRepository;
 import nextstep.subway.line.dto.LineRequest;
 import nextstep.subway.line.dto.LineResponse;
-import nextstep.subway.line.dto.LinesResponse;
+import nextstep.subway.line.dto.LineSimpleResponse;
 import nextstep.subway.line.dto.SectionRequest;
 import nextstep.subway.station.application.StationService;
 import nextstep.subway.station.domain.Station;
@@ -21,20 +23,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@Transactional(readOnly = true, transactionManager = "readTransactionManager")
+@Transactional(readOnly = true)
 public class LineService {
     private final LineRepository lineRepository;
     private final SectionRepository sectionRepository;
     private final StationService stationService;
 
-    public LineService(LineRepository lineRepository, SectionRepository sectionRepository,
-                       StationService stationService) {
+    public LineService(LineRepository lineRepository, SectionRepository sectionRepository, StationService stationService) {
         this.lineRepository = lineRepository;
         this.sectionRepository = sectionRepository;
         this.stationService = stationService;
     }
 
     // @formatter:off
+    @ReactiveCacheEvict(value = {"lines", "line-simple-responses"})
     @Transactional
     public Mono<LineResponse> saveLine(LineRequest request) {
         return Mono.zip(stationService.findById(request.getUpStationId()),
@@ -56,10 +58,12 @@ public class LineService {
         return new Line(request.getName(), request.getColor(), upStation, downStation, request.getDistance());
     }
 
-    public Flux<LinesResponse> findLineResponses() {
-        return findAll().map(LinesResponse::of);
+    @ReactiveCacheable("line-simple-responses")
+    public Flux<LineSimpleResponse> findLineResponses() {
+        return findAll().map(LineSimpleResponse::of);
     }
 
+    @ReactiveCacheable("lines")
     public Flux<Line> findLines() {
         return findAll();
     }
@@ -69,6 +73,7 @@ public class LineService {
         return lineRepository.findAll()
                 .collectList()
                 .zipWith(extractSections())
+//                .flatMap(lines -> extractSections().flatMap(sections -> Mono.just(Tuples.of(lines, sections))))
                 .map(tuple -> tuple.getT1()
                         .stream()
                         .map(line -> line.initSections(new ArrayList<>(tuple.getT2()
@@ -83,6 +88,7 @@ public class LineService {
         return sectionRepository.findAll()
                 .collectList()
                 .zipWith(extractStations())
+//                .flatMap(sections -> extractStations().flatMap(stations -> Mono.just(Tuples.of(sections, stations))))
                 .map(tuple -> mapSectionStream(tuple.getT1(), tuple.getT2()))
                 .flatMapMany(Flux::fromStream)
                 .collectMultimap(Section::getLineId);
@@ -138,6 +144,7 @@ public class LineService {
     }
 
     // @formatter:off
+    @ReactiveCacheEvict(value = {"lines", "line-simple-responses"})
     @Transactional
     public Mono<Line> updateLine(Long id, LineRequest lineUpdateRequest) {
         return lineRepository.findById(id)
@@ -147,12 +154,14 @@ public class LineService {
     }
     // @formatter:on
 
+    @ReactiveCacheEvict(value = {"lines", "line-simple-responses"})
     @Transactional
     public Mono<Void> deleteLineById(Long id) {
         return Mono.when(sectionRepository.deleteByLineId(id), lineRepository.deleteById(id));
     }
 
     // @formatter:off
+    @ReactiveCacheEvict(value = {"lines", "line-simple-responses"})
     @Transactional
     public Mono<Void> addLineStation(Long lineId, SectionRequest request) {
         return findLineById(lineId)
@@ -165,6 +174,7 @@ public class LineService {
     // @formatter:on
 
     // @formatter:off
+    @ReactiveCacheEvict(value = {"lines", "line-simple-responses"})
     @Transactional
     public Mono<Void> removeLineStation(Long lineId, Long stationId) {
         return findLineById(lineId)

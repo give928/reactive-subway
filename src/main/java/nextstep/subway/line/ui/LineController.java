@@ -3,7 +3,7 @@ package nextstep.subway.line.ui;
 import nextstep.subway.line.application.LineService;
 import nextstep.subway.line.dto.LineRequest;
 import nextstep.subway.line.dto.LineResponse;
-import nextstep.subway.line.dto.LinesResponse;
+import nextstep.subway.line.dto.LineSimpleResponse;
 import nextstep.subway.line.dto.SectionRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +29,7 @@ public class LineController {
     }
 
     @GetMapping
-    public Mono<ResponseEntity<List<LinesResponse>>> findAllLines() {
+    public Mono<ResponseEntity<List<LineSimpleResponse>>> findAllLines() {
         return lineService.findLineResponses()
                 .collectList()
                 .map(ResponseEntity::ok);

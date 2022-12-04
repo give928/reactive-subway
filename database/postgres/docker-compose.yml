@@ -24,7 +24,7 @@ services:
     ports:
       - '5433:5432'
     depends_on:
-      - mysql-master
+      - postgresql-master
     environment:
       - POSTGRESQL_REPLICATION_MODE=slave
       - POSTGRESQL_REPLICATION_USER=repl_user

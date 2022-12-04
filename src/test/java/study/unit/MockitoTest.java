@@ -5,7 +5,7 @@ import nextstep.subway.line.domain.Line;
 import nextstep.subway.line.domain.LineRepository;
 import nextstep.subway.line.domain.Section;
 import nextstep.subway.line.domain.SectionRepository;
-import nextstep.subway.line.dto.LinesResponse;
+import nextstep.subway.line.dto.LineSimpleResponse;
 import nextstep.subway.station.application.StationService;
 import nextstep.subway.station.domain.Station;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +31,7 @@ class MockitoTest {
         LineService lineService = new LineService(lineRepository, sectionRepository, stationService);
 
         // when
-        Flux<LinesResponse> responses = lineService.findLineResponses();
+        Flux<LineSimpleResponse> responses = lineService.findLineResponses();
 
         // then
         StepVerifier.create(responses)

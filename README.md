@@ -22,11 +22,12 @@ Project Metadata/Java: 11
 Dependencies:
 - Spring WebFlux
 - Spring Data R2DBC
+- Spring Data Redis Reactive
 - Spring AOP
 - Validation
-- Lombok
 - R2DBC PostgreSQL Driver
 - R2DBC H2 Database
+- Lombok
 - jgraph
 - jwt
 - flyway
@@ -38,16 +39,35 @@ Dependencies:
 ## 🚀 Getting Started
 
 ### Install
+
 #### npm
 ```shell
 $ cd frontend
 $ npm install
 ```
-#### database(PostgreSQL Master/Slave replication)
+
+#### PostgreSQL Master/Slave replication
 ```shell
 $ cd database/postgres
 $ docker-compose up -d
 ```
+
+#### Redis Cluster(3 Master/3 Slave) + Predixy
+
+- redis password: redis_password
+- predixy password: predixy_password
+- disable commands: KEYS,FLUSHALL,FLUSHDB
+```shell
+$ cd database/redis
+$ docker-compose up -d
+...
+$ redis-cli -p 7617 # connect to predixy
+127.0.0.1:7617> auth predixy_password
+127.0.0.1:7617> set a A
+127.0.0.1:7617> set b B
+127.0.0.1:7617> set c C # cluster data sharding
+```
+
 #### log directory
 ```shell
 $ mkdir -p /var/log/app
@@ -114,26 +134,16 @@ public class WebFluxConfig implements WebFluxConfigurer {
   ```
 
 #### Codecs
-- Jackson2JsonEncoder
-- Jackson2JsonDecoder
+- Http Message Codecs
 ```java
 @Configuration
 public class WebFluxConfig implements WebFluxConfigurer {
     @Override
     public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
-        configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(objectMapper()));
-        configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(objectMapper()));
-    }
+        configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(objectMapper));
+        configurer.defaultCodecs().jackson2JsonDecoder(new Jackson2JsonDecoder(objectMapper));
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return Jackson2ObjectMapperBuilder.json()
-                .failOnUnknownProperties(false)
-                .featuresToDisable(MapperFeature.DEFAULT_VIEW_INCLUSION)
-                .featuresToEnable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .serializerByType(LocalDateTime.class, new LocalDateTimeSerializer(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .serializerByType(LocalDate.class, new LocalDateSerializer(DateTimeFormatter.ISO_DATE))
-                .build();
+        configurer.defaultCodecs().enableLoggingRequestDetails(true);
     }
 }
 ```
@@ -272,7 +282,71 @@ public class WebFluxConfig implements WebFluxConfigurer {
       enabled: true
   ```
 
+#### Cache
+- LettuceConnectionFactory 설정
+  - 애플리케이션 부팅할 때 연결하지 않으면, 처음 레디스가 호출될 때 연결하면서 블로킹 콜이 감지된다.
+    - [https://github.com/lettuce-io/lettuce-core/issues/1692](https://github.com/lettuce-io/lettuce-core/issues/1692)
+      - That's a Spring Data Redis issue where you need to enable eager connection factory initialization.
+      - That is the natural consequence. Either you can initialize the connection at startup and move blocking calls onto the main thread or lazy initialization on the first access where blocking calls happen on the thread that requests the connection.
+    - 장단점이 있다. 운영 환경은 BlockHound 를 사용하지 않으니 선택하면 되겠다. 
+  ```java
+  public class RedisConfig {
+      @Bean
+      @Primary
+      public ReactiveRedisConnectionFactory reactiveRedisConnectionFactory()  {
+          RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration(host, port);
+          redisStandaloneConfiguration.setPassword(password);
+          LettuceConnectionFactory factory = new LettuceConnectionFactory(redisStandaloneConfiguration);
+          factory.setEagerInitialization(true); // 즉시 초기화
+          return factory;
+      }
+  }
+  ```
+- `ReactiveStringRedisTemplate extends ReactiveRedisTemplate<String, String>` 사용
+  - `GenericJackson2JsonRedisSerializer` 는 직렬화 데이터에 "@class" 속성으로 클래스 정보가 포함되어서 패키지가 변경되면 문제될 수 있다.
+  - `Jackson2JsonRedisSerializer` 는 타입을 지정해줘야 해서 각각 만들어야 한다.
+  - `StringRedisSerializer` 는 직접 직렬화/역직렬화를 해줘야 하지만 다른 Serializer 와 같은 문제는 없다.
+    - `RedisReactiveAutoConfiguration` 에서 `ReactiveStringRedisTemplate` 을 자동으로 등록해준다.
+- AOP 로 캐시 구현
+  - WebFlux 에서는 `Publisher` 구현체인 `Mono`, `Flux` 를 반환하고 `Subscriber` 가 `subscribe()` 할 때 데이터를 발행해서 `@Cacheable` 등 기존의 캐시 기능을 사용할 수 없다.
+  - 기존 캐시 기능과 비슷하게 스프링의 추상화를 구현했다. 모든 기능을 구현하지 않았고, 필요한 기능만..
+    - `ReactiveCacheAnnotationParser implements org.springframework.cache.annotation.CacheAnnotationParser`
+    - `ReactiveCacheableOperation extends org.springframework.cache.interceptor.CacheOperation`
+    - `ReactiveCacheEvictOperation extends org.springframework.cache.interceptor.CacheOperation`
+  - AOP 를 사용해서 Redis 에 캐시 데이터가 있으면 반환하고, 없으면 fallback 으로 원래 메서드에서 원본 데이터베이스의 데이터를 조회해서 반환한다.
+    - 반환 이후 비동기로 캐시 데이터를 저정한다.
+  - 주요 클래스, 어노테이션
+    - `RedisValueRepository implements CacheRepository<K, V>`
+    - `ReactiveCacheAspect`
+    - `@ReactiveCacheable`
+    - `@ReactiveCacheEvict`
+    - `@ReactiveCaching`
+    - `ReactiveCacheManager`
+  ```java
+  public class StationService {
+      @ReactiveCacheable("stations")
+      public Flux<Station> findAll() {
+          // ...
+      }
+
+      // ...
+
+      @ReactiveCaching(evict = {@ReactiveCacheEvict(value = {"station-responses", "stations", "lines", "line-simple-responses"}),
+                        @ReactiveCacheEvict(value = "station", key = "#id")})
+      @Transactional
+      public Mono<Void> deleteStationById(Long id) {
+          // ...
+      }
+  }
+  ```
+- 테스트에서는 embedded redis 가 동작한다.
+
 #### ConnectionFactoryConfiguration
+- 아래에 읽기/쓰기 분리는 실패..
+  - 트랜잭션은 원하는 대로 분리되서 실행되지만 실제 SQL 커넥션은 기본 커넥션 팩토리로만 연결된다.
+    - DefaultDatabaseClient 의 connectionFactory 필드 값이 기본 커넥션 팩토리로 설정되어 있다. 
+    - 따라서 결국 ConnectionFactoryUtils 에서 커넥션 가져올 때 기본 커넥션 팩토리에서 가져오고 ReactorNettyClient 가 기본 커넥션과 통신한다.
+  - 나중에 더 살펴보기로 하고 단일 커넥션 팩토리를 사용하도록 설정
 - 읽기/쓰기 `TransactionManager` 를 각각 사용하도록 설정
   - 마스터 데이터베이스로 연결되는 `writeTransactionManager` 로 쓰기를 하고 기본으로 사용
   - 읽기는 슬레이브 데이터베이스로 연결되는 `readTransactionManager` 를 사용

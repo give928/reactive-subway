@@ -7,7 +7,7 @@ import nextstep.subway.station.domain.Station;
 
 import java.time.LocalDateTime;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
 public class StationResponse {
     private Long id;

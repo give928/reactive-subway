@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@Transactional(readOnly = true, transactionManager = "readTransactionManager")
+@Transactional(readOnly = true)
 public class FavoriteService {
     private final FavoriteRepository favoriteRepository;
     private final StationService stationService;

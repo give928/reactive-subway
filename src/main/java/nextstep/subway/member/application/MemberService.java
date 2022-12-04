@@ -1,7 +1,7 @@
 package nextstep.subway.member.application;
 
 import lombok.extern.slf4j.Slf4j;
-import nextstep.subway.common.annotation.Loggable;
+import nextstep.subway.common.log.annotation.Loggable;
 import nextstep.subway.member.domain.MemberRepository;
 import nextstep.subway.member.dto.MemberRequest;
 import nextstep.subway.member.dto.MemberResponse;
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 @Service
-@Transactional(readOnly = true, transactionManager = "readTransactionManager")
+@Transactional(readOnly = true)
 @Slf4j
 public class MemberService {
     private final MemberRepository memberRepository;
