@@ -101,12 +101,10 @@ public class ReactiveCacheManager {
     }
 
     private Optional<String> getKey(CacheOperation cacheOperation) {
-        Set<String> cacheNames = cacheOperation.getCacheNames();
-        if (cacheNames.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(getKey(cacheNames.iterator()
-                                          .next(), cacheOperation.getKey()));
+        return Optional.of(cacheOperation.getCacheNames())
+                .filter(cacheNames -> !cacheNames.isEmpty())
+                .map(cacheNames -> getKey(cacheNames.iterator()
+                                               .next(), cacheOperation.getKey()));
     }
 
     private String getKey(String key, String id) {

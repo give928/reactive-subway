@@ -49,7 +49,7 @@ public class Line implements Serializable {
     }
     // @formatter:on
 
-    public Line initSections(List<Section> sections) {
+    Line initSections(List<Section> sections) {
         this.sections = sections;
         return this;
     }
@@ -66,7 +66,7 @@ public class Line implements Serializable {
     }
 
     // @formatter:off
-    public List<Section> addLineSection(Station upStation, Station downStation, int distance) {
+    List<Section> addLineSection(Station upStation, Station downStation, int distance) {
         boolean isUpStationExisted = isExisted(upStation);
         boolean isDownStationExisted = isExisted(downStation);
         valid(isUpStationExisted, isDownStationExisted);
@@ -79,16 +79,16 @@ public class Line implements Serializable {
             updateDownStation(upStation, downStation, distance).ifPresent(saveSections::add);
         }
         saveSections.add(Section.builder()
-                        .line(this)
-                        .upStation(upStation)
-                        .downStation(downStation)
-                        .distance(distance)
-                        .build());
+                                 .line(this)
+                                 .upStation(upStation)
+                                 .downStation(downStation)
+                                 .distance(distance)
+                                 .build());
         return saveSections;
     }
     // @formatter:on
 
-    public Map<String, List<Section>> removeStation(Long stationId) {
+    Map<String, List<Section>> removeStation(Long stationId) {
         validateRemoveStation();
 
         Optional<Section> upLineStation = findUpStation(stationId);

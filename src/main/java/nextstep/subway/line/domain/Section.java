@@ -49,40 +49,37 @@ public class Section implements Serializable {
         this.distance = distance;
     }
 
-    public Section initLine(Line line) {
+    Section initLine(Line line) {
         this.line = line;
         this.lineId = line.getId();
         return this;
     }
 
-    public Section initUpStation(Station station) {
-        this.upStation = station;
+    Section initStation(Station upStation, Station downStation) {
+        this.upStation = upStation;
         this.upStationId = upStation.getId();
+        this.downStation = downStation;
+        this.downStationId = downStation.getId();
         return this;
     }
 
-    public Section initDownStation(Station station) {
-        this.downStation = station;
-        return this;
-    }
-
-    public Boolean equalUpStation(Long stationId) {
+    Boolean equalUpStation(Long stationId) {
         return upStationId.equals(stationId);
     }
 
-    public Boolean equalUpStation(Station station) {
+    Boolean equalUpStation(Station station) {
         return equalUpStation(station.getId());
     }
 
-    public Boolean equalDownStation(Long stationId) {
+    Boolean equalDownStation(Long stationId) {
         return downStationId.equals(stationId);
     }
 
-    public Boolean equalDownStation(Station station) {
+    Boolean equalDownStation(Station station) {
         return equalDownStation(station.getId());
     }
 
-    public void updateUpStation(Station station, int newDistance) {
+    void updateUpStation(Station station, int newDistance) {
         if (this.distance < newDistance) {
             throw new IllegalArgumentException("역과 역 사이의 거리보다 좁은 거리를 입력해주세요");
         }
@@ -90,7 +87,7 @@ public class Section implements Serializable {
         this.distance -= newDistance;
     }
 
-    public void updateDownStation(Station station, int newDistance) {
+    void updateDownStation(Station station, int newDistance) {
         if (this.distance < newDistance) {
             throw new IllegalArgumentException("역과 역 사이의 거리보다 좁은 거리를 입력해주세요");
         }
@@ -98,11 +95,11 @@ public class Section implements Serializable {
         this.distance -= newDistance;
     }
 
-    public boolean existDownStation() {
+    boolean existDownStation() {
         return this.downStationId != null;
     }
 
-    public boolean existUpStation() {
+    boolean existUpStation() {
         return this.upStationId != null;
     }
 
